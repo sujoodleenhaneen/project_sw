@@ -41,7 +41,7 @@ class ManagerLoginControllerTest {
     void loginFails() {
         String result = controller.login("admin", "1111");
 
-        assertEquals("Incorrect username or password", result);
+        assertEquals("Incorrect password", result);
         assertFalse(controller.isLoggedIn());
     }
 
