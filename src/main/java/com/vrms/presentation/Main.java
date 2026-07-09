@@ -1,17 +1,27 @@
 package com.vrms.presentation;
 
+import java.util.List;
 import java.util.Scanner;
 
 import com.vrms.application.AuthService;
+import com.vrms.application.VehicleCatalogService;
+import com.vrms.domain.Vehicle;
 import com.vrms.persistence.InMemoryManagerRepository;
+import com.vrms.persistence.InMemoryVehicleRepository;
 import com.vrms.persistence.ManagerRepository;
+import com.vrms.persistence.VehicleRepository;
 
 public class Main {
 
     public static void main(String[] args) {
         ManagerRepository managerRepository = new InMemoryManagerRepository();
+        VehicleRepository vehicleRepository = new InMemoryVehicleRepository();
+
         AuthService authService = new AuthService(managerRepository);
-        ManagerLoginController controller = new ManagerLoginController(authService);
+        VehicleCatalogService vehicleCatalogService = new VehicleCatalogService(vehicleRepository, authService);
+
+        ManagerLoginController loginController = new ManagerLoginController(authService);
+        VehicleCatalogController vehicleController = new VehicleCatalogController(vehicleCatalogService);
 
         Scanner input = new Scanner(System.in);
         boolean run = true;
@@ -19,7 +29,7 @@ public class Main {
         while (run) {
             System.out.println();
 
-            if (!controller.isLoggedIn()) {
+            if (!loginController.isLoggedIn()) {
                 System.out.println("1. Login");
                 System.out.println("2. Exit");
                 System.out.print("Choose: ");
@@ -49,7 +59,7 @@ public class Main {
                             break;
                         }
 
-                        System.out.println(controller.login(username, password));
+                        System.out.println(loginController.login(username, password));
                         break;
 
                     case "2":
@@ -61,7 +71,7 @@ public class Main {
                         System.out.println("Invalid choice");
                 }
             } else {
-                System.out.println("1. Open protected page");
+                System.out.println("1. View available vehicles");
                 System.out.println("2. Logout");
                 System.out.println("3. Exit");
                 System.out.print("Choose: ");
@@ -70,11 +80,23 @@ public class Main {
 
                 switch (choice) {
                     case "1":
-                        System.out.println("Protected page opened");
+                        List<Vehicle> vehicles = vehicleController.viewAvailableVehicles();
+
+                        if (vehicles.isEmpty()) {
+                            System.out.println("No available vehicles");
+                            break;
+                        }
+
+                        System.out.println("Available vehicles:");
+
+                        for (Vehicle vehicle : vehicles) {
+                            System.out.println(vehicle);
+                        }
+
                         break;
 
                     case "2":
-                        System.out.println(controller.logout());
+                        System.out.println(loginController.logout());
                         break;
 
                     case "3":
