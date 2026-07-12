@@ -66,7 +66,8 @@ public class DomainModelTest {
         Rental rental = new Rental(
                 "R1",
                 vehicle,
-                "Ahmad",
+                "Haneen",
+                "haneen@example.com",
                 LocalDate.of(2026, 7, 10),
                 LocalDate.of(2026, 7, 15),
                 RentalStatus.ACTIVE
@@ -74,7 +75,8 @@ public class DomainModelTest {
 
         assertEquals("R1", rental.getRentalId());
         assertEquals(vehicle, rental.getVehicle());
-        assertEquals("Ahmad", rental.getCustomerName());
+        assertEquals("Haneen", rental.getCustomerName());
+        assertEquals("haneen@example.com", rental.getCustomerEmail());
         assertEquals(LocalDate.of(2026, 7, 10), rental.getStartDate());
         assertEquals(LocalDate.of(2026, 7, 15), rental.getEndDate());
         assertEquals(RentalStatus.ACTIVE, rental.getStatus());
@@ -93,7 +95,8 @@ public class DomainModelTest {
         Rental rental = new Rental(
                 "R1",
                 vehicle,
-                "Ahmad",
+                "Haneen",
+                "haneen@example.com",
                 LocalDate.of(2026, 7, 10),
                 LocalDate.of(2026, 7, 15),
                 RentalStatus.ACTIVE

@@ -18,30 +18,41 @@ public class RentalService {
 
     private static final int MAX_RENTAL_DAYS = 30;
 
-    public RentalService(VehicleRepository vehicleRepository, RentalRepository rentalRepository) {
+    public RentalService(VehicleRepository vehicleRepository,
+                         RentalRepository rentalRepository) {
+
         this.vehicleRepository = vehicleRepository;
         this.rentalRepository = rentalRepository;
     }
 
-    public Rental rentVehicle(String rentalId, String vehicleId, String customerName,
-                              LocalDate startDate, LocalDate endDate) {
+    public Rental rentVehicle(String rentalId,
+                              String vehicleId,
+                              String customerName,
+                              String customerEmail,
+                              LocalDate startDate,
+                              LocalDate endDate) {
 
         validateRentalPeriod(startDate, endDate);
 
         Vehicle vehicle = findVehicleById(vehicleId);
 
         if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
-            throw new IllegalStateException("Vehicle is not available for rental.");
+            throw new IllegalStateException(
+                    "Vehicle is not available for rental."
+            );
         }
 
         if (hasActiveRental(vehicleId)) {
-            throw new IllegalStateException("Vehicle is already rented.");
+            throw new IllegalStateException(
+                    "Vehicle is already rented."
+            );
         }
 
         Rental rental = new Rental(
                 rentalId,
                 vehicle,
                 customerName,
+                customerEmail,
                 startDate,
                 endDate,
                 RentalStatus.ACTIVE
@@ -54,6 +65,7 @@ public class RentalService {
     }
 
     private Vehicle findVehicleById(String vehicleId) {
+
         List<Vehicle> vehicles = vehicleRepository.findAll();
 
         for (Vehicle vehicle : vehicles) {
@@ -66,11 +78,13 @@ public class RentalService {
     }
 
     private boolean hasActiveRental(String vehicleId) {
+
         List<Rental> rentals = rentalRepository.findAll();
 
         for (Rental rental : rentals) {
             if (rental.getVehicle().getId().equals(vehicleId)
                     && rental.getStatus() == RentalStatus.ACTIVE) {
+
                 return true;
             }
         }
@@ -78,19 +92,29 @@ public class RentalService {
         return false;
     }
 
-    private void validateRentalPeriod(LocalDate startDate, LocalDate endDate) {
+    private void validateRentalPeriod(LocalDate startDate,
+                                      LocalDate endDate) {
+
         if (startDate == null || endDate == null) {
-            throw new IllegalArgumentException("Rental dates cannot be null.");
+            throw new IllegalArgumentException(
+                    "Rental dates cannot be null."
+            );
         }
 
-        if (endDate.isBefore(startDate) || endDate.isEqual(startDate)) {
-            throw new IllegalArgumentException("End date must be after start date.");
+        if (endDate.isBefore(startDate)
+                || endDate.isEqual(startDate)) {
+
+            throw new IllegalArgumentException(
+                    "End date must be after start date."
+            );
         }
 
         long days = ChronoUnit.DAYS.between(startDate, endDate);
 
         if (days > MAX_RENTAL_DAYS) {
-            throw new IllegalArgumentException("Rental period cannot exceed 30 days.");
+            throw new IllegalArgumentException(
+                    "Rental period cannot exceed 30 days."
+            );
         }
     }
 }

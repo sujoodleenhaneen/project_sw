@@ -27,33 +27,44 @@ public class RentalServiceTest {
     public void setUp() {
         vehicleRepository = new InMemoryVehicleRepository();
         rentalRepository = new InMemoryRentalRepository();
-        rentalService = new RentalService(vehicleRepository, rentalRepository);
+        rentalService = new RentalService(
+                vehicleRepository,
+                rentalRepository
+        );
     }
 
     @Test
     public void rentVehicle_whenVehicleIsAvailable_shouldCreateRentalAndChangeStatus() {
+
         Rental rental = rentalService.rentVehicle(
                 "R1",
                 "V1",
                 "Ahmad",
+                "ahmad@example.com",
                 LocalDate.of(2026, 7, 10),
                 LocalDate.of(2026, 7, 15)
         );
 
         assertEquals("R1", rental.getRentalId());
         assertEquals("Ahmad", rental.getCustomerName());
+        assertEquals("ahmad@example.com", rental.getCustomerEmail());
         assertEquals(RentalStatus.ACTIVE, rental.getStatus());
-        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
+        assertEquals(
+                VehicleStatus.RENTED,
+                rental.getVehicle().getStatus()
+        );
         assertEquals(1, rentalRepository.findAll().size());
     }
 
     @Test
     public void rentVehicle_whenVehicleIsAlreadyRented_shouldThrowException() {
+
         assertThrows(IllegalStateException.class, () -> {
             rentalService.rentVehicle(
                     "R2",
                     "V2",
                     "Sara",
+                    "sara@example.com",
                     LocalDate.of(2026, 7, 10),
                     LocalDate.of(2026, 7, 15)
             );
@@ -62,11 +73,13 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenVehicleDoesNotExist_shouldThrowException() {
+
         assertThrows(IllegalArgumentException.class, () -> {
             rentalService.rentVehicle(
                     "R3",
                     "V99",
                     "Omar",
+                    "omar@example.com",
                     LocalDate.of(2026, 7, 10),
                     LocalDate.of(2026, 7, 15)
             );
@@ -75,11 +88,13 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenStartDateIsNull_shouldThrowException() {
+
         assertThrows(IllegalArgumentException.class, () -> {
             rentalService.rentVehicle(
                     "R4",
                     "V1",
                     "Lina",
+                    "lina@example.com",
                     null,
                     LocalDate.of(2026, 7, 15)
             );
@@ -88,11 +103,13 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenEndDateIsNull_shouldThrowException() {
+
         assertThrows(IllegalArgumentException.class, () -> {
             rentalService.rentVehicle(
                     "R5",
                     "V1",
                     "Mona",
+                    "mona@example.com",
                     LocalDate.of(2026, 7, 10),
                     null
             );
@@ -101,11 +118,13 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenEndDateIsBeforeStartDate_shouldThrowException() {
+
         assertThrows(IllegalArgumentException.class, () -> {
             rentalService.rentVehicle(
                     "R6",
                     "V1",
                     "Khaled",
+                    "khaled@example.com",
                     LocalDate.of(2026, 7, 15),
                     LocalDate.of(2026, 7, 10)
             );
@@ -114,11 +133,13 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenEndDateEqualsStartDate_shouldThrowException() {
+
         assertThrows(IllegalArgumentException.class, () -> {
             rentalService.rentVehicle(
                     "R7",
                     "V1",
                     "Noor",
+                    "noor@example.com",
                     LocalDate.of(2026, 7, 10),
                     LocalDate.of(2026, 7, 10)
             );
@@ -127,11 +148,13 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenRentalPeriodExceedsThirtyDays_shouldThrowException() {
+
         assertThrows(IllegalArgumentException.class, () -> {
             rentalService.rentVehicle(
                     "R8",
                     "V1",
                     "Huda",
+                    "huda@example.com",
                     LocalDate.of(2026, 7, 1),
                     LocalDate.of(2026, 8, 15)
             );
@@ -140,12 +163,14 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenVehicleHasActiveRental_shouldThrowException() {
+
         Vehicle vehicle = vehicleRepository.findAll().get(0);
 
         Rental existingRental = new Rental(
                 "R9",
                 vehicle,
                 "Rawan",
+                "rawan@example.com",
                 LocalDate.of(2026, 7, 1),
                 LocalDate.of(2026, 7, 5),
                 RentalStatus.ACTIVE
@@ -158,6 +183,7 @@ public class RentalServiceTest {
                     "R10",
                     vehicle.getId(),
                     "Dana",
+                    "dana@example.com",
                     LocalDate.of(2026, 7, 6),
                     LocalDate.of(2026, 7, 10)
             );
