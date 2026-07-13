@@ -173,4 +173,29 @@ public class RentalService {
             );
         }
     }
+    
+    private Rental findRentalByVehicleId(String VehicleId)
+    {
+        List<Rental> rentals = rentalRepository.findAll();
+
+        for (Rental rental : rentals) {
+            if(rental.getVehicle().getId().equals(VehicleId))
+                return rental;
+        }
+
+        throw new IllegalArgumentException("Rental Id not found");
+    }
+
+    public Rental returnVehicle(String vehicleId)
+    {
+        Rental rental = findRentalByVehicleId(vehicleId);
+        LocalDate returnDate = LocalDate.now();
+
+
+        rental.closeRental();
+        rental.getVehicle().setStatus(VehicleStatus.AVAILABLE);
+        return rental;
+
+    }
 }
+
