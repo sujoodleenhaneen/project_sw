@@ -11,26 +11,63 @@ import com.vrms.domain.VehicleStatus;
 import com.vrms.persistence.RentalRepository;
 import com.vrms.persistence.VehicleRepository;
 
+/**
+ * Provides the application logic required to rent vehicles.
+ *
+ * <p>The service validates the rental period, prevents double booking,
+ * updates the vehicle status, and saves the created rental record.</p>
+ */
 public class RentalService {
 
-    private VehicleRepository vehicleRepository;
-    private RentalRepository rentalRepository;
-
+    /**
+     * Maximum allowed rental duration in days.
+     */
     private static final int MAX_RENTAL_DAYS = 30;
 
-    public RentalService(VehicleRepository vehicleRepository,
-                         RentalRepository rentalRepository) {
+    /**
+     * Repository used to access vehicle records.
+     */
+    private final VehicleRepository vehicleRepository;
+
+    /**
+     * Repository used to store and retrieve rental records.
+     */
+    private final RentalRepository rentalRepository;
+
+    /**
+     * Creates a rental service.
+     *
+     * @param vehicleRepository repository containing vehicle records
+     * @param rentalRepository repository containing rental records
+     */
+    public RentalService(
+            VehicleRepository vehicleRepository,
+            RentalRepository rentalRepository) {
 
         this.vehicleRepository = vehicleRepository;
         this.rentalRepository = rentalRepository;
     }
 
-    public Rental rentVehicle(String rentalId,
-                              String vehicleId,
-                              String customerName,
-                              String customerEmail,
-                              LocalDate startDate,
-                              LocalDate endDate) {
+    /**
+     * Creates a new vehicle rental.
+     *
+     * @param rentalId unique rental identifier
+     * @param vehicleId identifier of the vehicle to rent
+     * @param customerName customer name
+     * @param customerEmail customer email address
+     * @param startDate rental start date
+     * @param endDate rental end date
+     * @return the newly created rental
+     * @throws IllegalArgumentException if the vehicle or rental dates are invalid
+     * @throws IllegalStateException if the vehicle cannot be rented
+     */
+    public Rental rentVehicle(
+            String rentalId,
+            String vehicleId,
+            String customerName,
+            String customerEmail,
+            LocalDate startDate,
+            LocalDate endDate) {
 
         validateRentalPeriod(startDate, endDate);
 
@@ -64,6 +101,13 @@ public class RentalService {
         return rental;
     }
 
+    /**
+     * Finds a vehicle using its identifier.
+     *
+     * @param vehicleId vehicle identifier
+     * @return matching vehicle
+     * @throws IllegalArgumentException if the vehicle does not exist
+     */
     private Vehicle findVehicleById(String vehicleId) {
 
         List<Vehicle> vehicles = vehicleRepository.findAll();
@@ -77,6 +121,12 @@ public class RentalService {
         throw new IllegalArgumentException("Vehicle not found.");
     }
 
+    /**
+     * Checks whether a vehicle has an active rental.
+     *
+     * @param vehicleId vehicle identifier
+     * @return {@code true} if an active rental exists; otherwise {@code false}
+     */
     private boolean hasActiveRental(String vehicleId) {
 
         List<Rental> rentals = rentalRepository.findAll();
@@ -92,8 +142,16 @@ public class RentalService {
         return false;
     }
 
-    private void validateRentalPeriod(LocalDate startDate,
-                                      LocalDate endDate) {
+    /**
+     * Validates the rental start and end dates.
+     *
+     * @param startDate rental start date
+     * @param endDate rental end date
+     * @throws IllegalArgumentException if the dates are invalid
+     */
+    private void validateRentalPeriod(
+            LocalDate startDate,
+            LocalDate endDate) {
 
         if (startDate == null || endDate == null) {
             throw new IllegalArgumentException(
@@ -101,9 +159,7 @@ public class RentalService {
             );
         }
 
-        if (endDate.isBefore(startDate)
-                || endDate.isEqual(startDate)) {
-
+        if (!endDate.isAfter(startDate)) {
             throw new IllegalArgumentException(
                     "End date must be after start date."
             );

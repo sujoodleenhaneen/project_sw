@@ -67,13 +67,18 @@ public class Main {
                 new EmailNotificationService();
 
         RentalReminderService rentalReminderService =
-                new RentalReminderService(notificationService);
+                new RentalReminderService(
+                        notificationService,
+                        rentalRepository
+                );
 
         ManagerLoginController loginController =
                 new ManagerLoginController(authService);
 
         VehicleCatalogController vehicleController =
-                new VehicleCatalogController(vehicleCatalogService);
+                new VehicleCatalogController(
+                        vehicleCatalogService
+                );
 
         RentalController rentalController =
                 new RentalController(rentalService);
@@ -82,6 +87,7 @@ public class Main {
         boolean run = true;
 
         while (run) {
+
             System.out.println();
 
             if (!loginController.isLoggedIn()) {
@@ -117,8 +123,11 @@ public class Main {
 
                 System.out.println("1. View available vehicles");
                 System.out.println("2. Rent a vehicle");
-                System.out.println("3. Logout");
-                System.out.println("4. Exit");
+                System.out.println(
+                        "3. Check rental expiry reminders"
+                );
+                System.out.println("4. Logout");
+                System.out.println("5. Exit");
                 System.out.print("Choose: ");
 
                 String choice = input.nextLine().trim();
@@ -126,32 +135,41 @@ public class Main {
                 switch (choice) {
 
                     case "1":
-                        displayAvailableVehicles(vehicleController);
+                        displayAvailableVehicles(
+                                vehicleController
+                        );
                         break;
 
                     case "2":
                         handleRentalCreation(
                                 input,
                                 vehicleController,
-                                rentalController,
-                                rentalReminderService
+                                rentalController
                         );
                         break;
 
                     case "3":
+                        handleReminderCheck(
+                                rentalReminderService
+                        );
+                        break;
+
+                    case "4":
                         System.out.println(
                                 loginController.logout()
                         );
                         break;
 
-                    case "4":
+                    case "5":
                         run = false;
                         System.out.println("Program closed");
                         break;
 
                     default:
                         System.out.println(
-                                "Invalid choice. Please enter a number from 1 to 4."
+                                "Invalid choice. "
+                                        + "Please enter a number "
+                                        + "from 1 to 5."
                         );
                 }
             }
@@ -175,6 +193,7 @@ public class Main {
         String username;
 
         while (true) {
+
             username = readRequiredText(
                     input,
                     "Username: ",
@@ -197,7 +216,10 @@ public class Main {
         );
 
         System.out.println(
-                loginController.login(username, password)
+                loginController.login(
+                        username,
+                        password
+                )
         );
     }
 
@@ -226,18 +248,17 @@ public class Main {
 
     /**
      * Reads rental information and creates a vehicle rental.
-     * Invalid input causes only the incorrect field to be requested again.
+     * Invalid input causes only the incorrect field to be
+     * requested again.
      *
      * @param input scanner used to read user input
      * @param vehicleController vehicle catalog controller
      * @param rentalController rental controller
-     * @param reminderService rental reminder service
      */
     private static void handleRentalCreation(
             Scanner input,
             VehicleCatalogController vehicleController,
-            RentalController rentalController,
-            RentalReminderService reminderService) {
+            RentalController rentalController) {
 
         List<Vehicle> availableVehicles =
                 vehicleController.viewAvailableVehicles();
@@ -272,7 +293,8 @@ public class Main {
                 "Customer name cannot be empty."
         );
 
-        String customerEmail = readValidEmail(input);
+        String customerEmail =
+                readValidEmail(input);
 
         LocalDate startDate = readDate(
                 input,
@@ -285,56 +307,82 @@ public class Main {
         );
 
         try {
-            Rental rental = rentalController.rentVehicle(
-                    rentalId,
-                    vehicleId,
-                    customerName,
-                    customerEmail,
-                    startDate,
-                    endDate
-            );
+
+            Rental rental =
+                    rentalController.rentVehicle(
+                            rentalId,
+                            vehicleId,
+                            customerName,
+                            customerEmail,
+                            startDate,
+                            endDate
+                    );
 
             System.out.println();
             System.out.println(
                     "Rental created successfully."
             );
+
             System.out.println(
-                    "Rental ID: " + rental.getRentalId()
+                    "Rental ID: "
+                            + rental.getRentalId()
             );
+
             System.out.println(
-                    "Customer: " + rental.getCustomerName()
+                    "Customer: "
+                            + rental.getCustomerName()
             );
+
             System.out.println(
                     "Customer email: "
                             + rental.getCustomerEmail()
             );
+
             System.out.println(
-                    "Vehicle: " + rental.getVehicle()
-            );
-            System.out.println(
-                    "Start date: " + rental.getStartDate()
-            );
-            System.out.println(
-                    "End date: " + rental.getEndDate()
+                    "Vehicle: "
+                            + rental.getVehicle()
             );
 
-            boolean reminderGenerated =
-                    reminderService.checkAndSendReminder(
-                            rental,
-                            LocalDate.now()
-                    );
+            System.out.println(
+                    "Start date: "
+                            + rental.getStartDate()
+            );
 
-            if (!reminderGenerated) {
-                System.out.println(
-                        "No expiry reminder is required today."
-                );
-            }
+            System.out.println(
+                    "End date: "
+                            + rental.getEndDate()
+            );
 
         } catch (IllegalArgumentException
                  | IllegalStateException exception) {
 
             System.out.println(
                     "Rental failed: "
+                            + exception.getMessage()
+            );
+        }
+    }
+    private static void handleReminderCheck(
+            RentalReminderService reminderService) {
+
+        try {
+
+            int remindersGenerated =
+                    reminderService
+                            .checkAllRentalsAndSendReminders(
+                                    LocalDate.now()
+                            );
+
+            System.out.println(
+                    "Reminders generated: "
+                            + remindersGenerated
+            );
+
+        } catch (IllegalArgumentException
+                 | IllegalStateException exception) {
+
+            System.out.println(
+                    "Reminder check failed: "
                             + exception.getMessage()
             );
         }
@@ -354,8 +402,11 @@ public class Main {
             String errorMessage) {
 
         while (true) {
+
             System.out.print(prompt);
-            String value = input.nextLine().trim();
+
+            String value =
+                    input.nextLine().trim();
 
             if (!value.isEmpty()) {
                 return value;
@@ -377,6 +428,7 @@ public class Main {
             List<Vehicle> availableVehicles) {
 
         while (true) {
+
             String vehicleId = readRequiredText(
                     input,
                     "Vehicle ID: ",
@@ -384,14 +436,18 @@ public class Main {
             );
 
             for (Vehicle vehicle : availableVehicles) {
-                if (vehicle.getId().equalsIgnoreCase(vehicleId)) {
+
+                if (vehicle.getId()
+                        .equalsIgnoreCase(vehicleId)) {
+
                     return vehicle.getId();
                 }
             }
 
             System.out.println(
                     "Invalid or unavailable vehicle ID. "
-                            + "Please choose an ID from the displayed list."
+                            + "Please choose an ID "
+                            + "from the displayed list."
             );
         }
     }
@@ -402,9 +458,11 @@ public class Main {
      * @param input scanner used to read user input
      * @return valid email address
      */
-    private static String readValidEmail(Scanner input) {
+    private static String readValidEmail(
+            Scanner input) {
 
         while (true) {
+
             String email = readRequiredText(
                     input,
                     "Customer email: ",
@@ -420,7 +478,8 @@ public class Main {
             }
 
             System.out.println(
-                    "Invalid email. Example: haneen@example.com"
+                    "Invalid email. "
+                            + "Example: haneen@example.com"
             );
         }
     }
@@ -437,13 +496,18 @@ public class Main {
             String prompt) {
 
         while (true) {
+
             System.out.print(prompt);
-            String dateText = input.nextLine().trim();
+
+            String dateText =
+                    input.nextLine().trim();
 
             try {
+
                 return LocalDate.parse(dateText);
 
             } catch (DateTimeParseException exception) {
+
                 System.out.println(
                         "Invalid date. Use YYYY-MM-DD, "
                                 + "for example: 2026-07-13."
@@ -465,29 +529,36 @@ public class Main {
             LocalDate startDate) {
 
         while (true) {
+
             LocalDate endDate = readDate(
                     input,
                     "End date (YYYY-MM-DD): "
             );
 
             if (!endDate.isAfter(startDate)) {
+
                 System.out.println(
-                        "End date must be after the start date."
+                        "End date must be after "
+                                + "the start date."
                 );
+
                 continue;
             }
 
-            long rentalDays = ChronoUnit.DAYS.between(
-                    startDate,
-                    endDate
-            );
+            long rentalDays =
+                    ChronoUnit.DAYS.between(
+                            startDate,
+                            endDate
+                    );
 
             if (rentalDays > MAX_RENTAL_DAYS) {
+
                 System.out.println(
                         "Rental period cannot exceed "
                                 + MAX_RENTAL_DAYS
                                 + " days."
                 );
+
                 continue;
             }
 

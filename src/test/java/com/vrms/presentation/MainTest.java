@@ -39,9 +39,8 @@ public class MainTest {
      */
     @Test
     public void main_whenUserChoosesExit_shouldCloseProgram() {
-        String input = "2\n";
 
-        String output = runMainWithInput(input);
+        String output = runMainWithInput("2\n");
 
         assertTrue(output.contains("Program closed"));
     }
@@ -51,9 +50,11 @@ public class MainTest {
      */
     @Test
     public void main_whenUserChoosesInvalidOptionBeforeLogin_shouldShowInvalidChoice() {
-        String input = "9\n2\n";
 
-        String output = runMainWithInput(input);
+        String output = runMainWithInput(
+                "9\n"
+                + "2\n"
+        );
 
         assertTrue(output.contains("Invalid choice"));
         assertTrue(output.contains("Program closed"));
@@ -64,12 +65,13 @@ public class MainTest {
      */
     @Test
     public void main_whenUsernameIsEmpty_shouldShowUsernameCannotBeEmpty() {
+
         String input =
                 "1\n"
                 + "   \n"
                 + "admin\n"
                 + "1234\n"
-                + "4\n";
+                + "5\n";
 
         String output = runMainWithInput(input);
 
@@ -82,12 +84,13 @@ public class MainTest {
      */
     @Test
     public void main_whenUsernameDoesNotExist_shouldShowUsernameNotFound() {
+
         String input =
                 "1\n"
                 + "wrongUser\n"
                 + "admin\n"
                 + "1234\n"
-                + "4\n";
+                + "5\n";
 
         String output = runMainWithInput(input);
 
@@ -100,12 +103,13 @@ public class MainTest {
      */
     @Test
     public void main_whenPasswordIsEmpty_shouldShowPasswordCannotBeEmpty() {
+
         String input =
                 "1\n"
                 + "admin\n"
                 + "   \n"
                 + "1234\n"
-                + "4\n";
+                + "5\n";
 
         String output = runMainWithInput(input);
 
@@ -118,6 +122,7 @@ public class MainTest {
      */
     @Test
     public void main_whenPasswordIsIncorrect_shouldShowIncorrectPassword() {
+
         String input =
                 "1\n"
                 + "admin\n"
@@ -135,12 +140,13 @@ public class MainTest {
      */
     @Test
     public void main_whenLoginSuccessfulAndViewVehicles_shouldDisplayAvailableVehicles() {
+
         String input =
                 "1\n"
                 + "admin\n"
                 + "1234\n"
                 + "1\n"
-                + "4\n";
+                + "5\n";
 
         String output = runMainWithInput(input);
 
@@ -156,11 +162,12 @@ public class MainTest {
      */
     @Test
     public void main_whenLoginSuccessfulAndLogout_shouldLogoutSuccessfully() {
+
         String input =
                 "1\n"
                 + "admin\n"
                 + "1234\n"
-                + "3\n"
+                + "4\n"
                 + "2\n";
 
         String output = runMainWithInput(input);
@@ -175,17 +182,68 @@ public class MainTest {
      */
     @Test
     public void main_whenUserChoosesInvalidOptionAfterLogin_shouldShowInvalidChoice() {
+
         String input =
                 "1\n"
                 + "admin\n"
                 + "1234\n"
                 + "9\n"
-                + "4\n";
+                + "5\n";
 
         String output = runMainWithInput(input);
 
         assertTrue(output.contains("Login successful"));
         assertTrue(output.contains("Invalid choice"));
+        assertTrue(output.contains("Program closed"));
+    }
+
+    /**
+     * Verifies that valid rental information creates a rental successfully.
+     */
+    @Test
+    public void main_whenRentalInformationIsValid_shouldCreateRentalSuccessfully() {
+
+        String input =
+                "1\n"
+                + "admin\n"
+                + "1234\n"
+                + "2\n"
+                + "R100\n"
+                + "V1\n"
+                + "Ahmad\n"
+                + "ahmad@example.com\n"
+                + "2099-01-01\n"
+                + "2099-01-05\n"
+                + "5\n";
+
+        String output = runMainWithInput(input);
+
+        assertTrue(output.contains("Login successful"));
+        assertTrue(output.contains("Available vehicles"));
+        assertTrue(output.contains("Rental created successfully"));
+        assertTrue(output.contains("Rental ID: R100"));
+        assertTrue(output.contains("Customer: Ahmad"));
+        assertTrue(output.contains("ahmad@example.com"));
+        assertTrue(output.contains("Program closed"));
+    }
+
+    /**
+     * Verifies that the reminder option checks all stored rentals.
+     */
+    @Test
+    public void main_whenReminderOptionIsSelected_shouldDisplayReminderCount() {
+
+        String input =
+                "1\n"
+                + "admin\n"
+                + "1234\n"
+                + "3\n"
+                + "5\n";
+
+        String output = runMainWithInput(input);
+
+        assertTrue(output.contains("Login successful"));
+        assertTrue(output.contains("Reminders generated: 0"));
         assertTrue(output.contains("Program closed"));
     }
 
@@ -196,6 +254,7 @@ public class MainTest {
      * @return captured console output
      */
     private String runMainWithInput(String input) {
+
         ByteArrayInputStream testInput =
                 new ByteArrayInputStream(input.getBytes());
 
