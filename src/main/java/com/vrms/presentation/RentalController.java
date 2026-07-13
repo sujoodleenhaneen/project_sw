@@ -51,4 +51,17 @@ public class RentalController {
                 endDate
         );
     }
+    /**
+     * Returns a rented vehicle and closes its rental record.
+     *
+     * @param vehicleId identifier of the vehicle to return
+     * @return the closed rental record
+     * @throws IllegalArgumentException if the vehicle rental cannot be found
+     *                                  or no cost strategy is configured
+     * @throws IllegalStateException if the vehicle cannot be returned
+     */
+    public Rental returnVehicle(String vehicleId) {
+
+        return rentalService.returnVehicle(vehicleId);
+    }
 }

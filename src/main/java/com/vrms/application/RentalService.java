@@ -224,7 +224,7 @@ public class RentalService {
         List<Rental> rentals = rentalRepository.findAll();
 
         for (Rental rental : rentals) {
-            if (rental.getVehicle().getId().equals(vehicleId)) {
+            if (rental.getVehicle().getId().equals(vehicleId) && rental.getStatus() == RentalStatus.ACTIVE) {
                 return rental;
             }
         }
