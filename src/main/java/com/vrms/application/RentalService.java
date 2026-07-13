@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import com.vrms.domain.Rental;
+import com.vrms.domain.RentalCostStrategy;
 import com.vrms.domain.RentalStatus;
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
@@ -12,10 +13,11 @@ import com.vrms.persistence.RentalRepository;
 import com.vrms.persistence.VehicleRepository;
 
 /**
- * Provides the application logic required to rent vehicles.
+ * Provides the application logic required to rent and return vehicles.
  *
- * <p>The service validates the rental period, prevents double booking,
- * updates the vehicle status, and saves the created rental record.</p>
+ * <p>This service validates rental periods, prevents double booking, updates
+ * vehicle status, saves rental records, closes returned rentals, and calculates
+ * rental costs using a rental cost strategy.</p>
  */
 public class RentalService {
 
@@ -35,6 +37,14 @@ public class RentalService {
     private final RentalRepository rentalRepository;
 
     /**
+     * Strategy used to calculate the total rental cost when a vehicle is returned.
+     *
+     * <p>The strategy allows the billing calculation to be changed without modifying
+     * the rental service logic. If no strategy is set, returning a vehicle will fail.</p>
+     */
+    private RentalCostStrategy rentalStrategy;
+
+    /**
      * Creates a rental service.
      *
      * @param vehicleRepository repository containing vehicle records
@@ -46,6 +56,28 @@ public class RentalService {
 
         this.vehicleRepository = vehicleRepository;
         this.rentalRepository = rentalRepository;
+        this.rentalStrategy = null;
+    }
+
+    /**
+     * Sets the rental cost calculation strategy.
+     *
+     * <p>This method is used to inject the pricing strategy that will calculate
+     * the total cost of a rental when the vehicle is returned.</p>
+     *
+     * @param rentalStrategy strategy used to calculate rental cost
+     */
+    public void setRentalStrategy(RentalCostStrategy rentalStrategy) {
+        this.rentalStrategy = rentalStrategy;
+    }
+
+    /**
+     * Returns the currently used rental cost strategy.
+     *
+     * @return the rental cost strategy used by this service
+     */
+    public RentalCostStrategy getRentalStrategy() {
+        return rentalStrategy;
     }
 
     /**
@@ -145,9 +177,12 @@ public class RentalService {
     /**
      * Validates the rental start and end dates.
      *
+     * <p>The rental dates must not be null, the end date must be after the start
+     * date, and the rental duration must not exceed the maximum allowed duration.</p>
+     *
      * @param startDate rental start date
      * @param endDate rental end date
-     * @throws IllegalArgumentException if the dates are invalid
+     * @throws IllegalArgumentException if the dates are null, invalid, or exceed the limit
      */
     private void validateRentalPeriod(
             LocalDate startDate,
@@ -173,29 +208,56 @@ public class RentalService {
             );
         }
     }
-    
-    private Rental findRentalByVehicleId(String VehicleId)
-    {
+
+    /**
+     * Finds a rental record using the rented vehicle identifier.
+     *
+     * <p>This method searches all rental records and returns the rental that
+     * belongs to the given vehicle. It is mainly used when returning a vehicle.</p>
+     *
+     * @param vehicleId identifier of the rented vehicle
+     * @return rental record associated with the given vehicle
+     * @throws IllegalArgumentException if no rental record is found for the vehicle
+     */
+    private Rental findRentalByVehicleId(String vehicleId) {
+
         List<Rental> rentals = rentalRepository.findAll();
 
         for (Rental rental : rentals) {
-            if(rental.getVehicle().getId().equals(VehicleId))
+            if (rental.getVehicle().getId().equals(vehicleId)) {
                 return rental;
+            }
         }
 
-        throw new IllegalArgumentException("Rental Id not found");
+        throw new IllegalArgumentException("Rental for vehicle not found.");
     }
 
-    public Rental returnVehicle(String vehicleId)
-    {
+    /**
+     * Returns a rented vehicle and closes its rental record.
+     *
+     * <p>The method finds the rental record using the vehicle identifier, calculates
+     * the total rental cost using the selected rental cost strategy, closes the rental
+     * record, and changes the vehicle status back to {@link VehicleStatus#AVAILABLE}.</p>
+     *
+     * @param vehicleId identifier of the vehicle being returned
+     * @return the closed rental record after calculating the total cost
+     * @throws IllegalArgumentException if no rental cost strategy is set or if no rental
+     *                                  record is found for the given vehicle
+     */
+    public Rental returnVehicle(String vehicleId) {
+
         Rental rental = findRentalByVehicleId(vehicleId);
         LocalDate returnDate = LocalDate.now();
 
+        if (rentalStrategy != null) {
+            rental.setTotalCost(rentalStrategy.calculateCost(rental, returnDate));
+        } else {
+            throw new IllegalArgumentException("No rental cost strategy is set.");
+        }
 
         rental.closeRental();
         rental.getVehicle().setStatus(VehicleStatus.AVAILABLE);
-        return rental;
 
+        return rental;
     }
 }
-
