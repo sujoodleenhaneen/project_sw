@@ -96,6 +96,7 @@ public class RentalService {
         );
 
         vehicle.setStatus(VehicleStatus.RENTED);
+        vehicleRepository.save(vehicle);
         rentalRepository.save(rental);
 
         return rental;

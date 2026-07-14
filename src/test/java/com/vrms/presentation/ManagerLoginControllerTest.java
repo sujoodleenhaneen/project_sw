@@ -8,7 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vrms.application.AuthService;
-import com.vrms.persistence.InMemoryManagerRepository;
+import com.vrms.persistence.FileManagerRepository;
 
 public class ManagerLoginControllerTest {
 
@@ -16,7 +16,7 @@ public class ManagerLoginControllerTest {
 
     @BeforeEach
     public void setUp() {
-        AuthService authService = new AuthService(new InMemoryManagerRepository());
+        AuthService authService = new AuthService(new FileManagerRepository());
         controller = new ManagerLoginController(authService);
     }
 

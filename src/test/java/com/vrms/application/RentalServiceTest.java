@@ -3,66 +3,46 @@ package com.vrms.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.vrms.domain.Rental;
 import com.vrms.domain.RentalStatus;
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
-import com.vrms.persistence.InMemoryRentalRepository;
-import com.vrms.persistence.InMemoryVehicleRepository;
-import com.vrms.persistence.RentalRepository;
-import com.vrms.persistence.VehicleRepository;
+import com.vrms.persistence.FileRentalRepository;
+import com.vrms.persistence.FileVehicleRepository;
 
-/**
- * Tests the vehicle rental operations provided by {@link RentalService}.
- */
 public class RentalServiceTest {
 
-    /**
-     * Repository containing vehicle records used during testing.
-     */
-    private VehicleRepository vehicleRepository;
+    @TempDir
+    Path tempDir;
 
-    /**
-     * Repository containing rental records used during testing.
-     */
-    private RentalRepository rentalRepository;
-
-    /**
-     * Service under test.
-     */
+    private FileVehicleRepository vehicleRepository;
+    private FileRentalRepository rentalRepository;
     private RentalService rentalService;
 
-    /**
-     * Creates fresh repositories and a fresh rental service before each test.
-     */
     @BeforeEach
     public void setUp() {
+        vehicleRepository = new FileVehicleRepository(tempDir.resolve("vehicles.txt"));
 
-        vehicleRepository =
-                new InMemoryVehicleRepository();
+        rentalRepository = new FileRentalRepository(
+                tempDir.resolve("rentals.txt"),
+                vehicleRepository
+        );
 
-        rentalRepository =
-                new InMemoryRentalRepository();
-
-        rentalService =
-                new RentalService(
-                        vehicleRepository,
-                        rentalRepository
-                );
+        rentalService = new RentalService(
+                vehicleRepository,
+                rentalRepository
+        );
     }
 
-    /**
-     * Verifies that renting an available vehicle creates a rental,
-     * stores it, and changes the vehicle status to rented.
-     */
     @Test
     public void rentVehicle_whenVehicleIsAvailable_shouldCreateRentalAndChangeStatus() {
-
         Rental rental = rentalService.rentVehicle(
                 "R1",
                 "V1",
@@ -72,54 +52,28 @@ public class RentalServiceTest {
                 LocalDate.of(2026, 7, 15)
         );
 
-        assertEquals(
-                "R1",
-                rental.getRentalId()
-        );
+        assertEquals("R1", rental.getRentalId());
+        assertEquals("Ahmad", rental.getCustomerName());
+        assertEquals("ahmad@example.com", rental.getCustomerEmail());
+        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
+        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
+        assertEquals(1, rentalRepository.findAll().size());
 
-        assertEquals(
-                "Ahmad",
-                rental.getCustomerName()
-        );
-
-        assertEquals(
-                "ahmad@example.com",
-                rental.getCustomerEmail()
-        );
-
-        assertEquals(
-                RentalStatus.ACTIVE,
-                rental.getStatus()
-        );
-
-        assertEquals(
-                VehicleStatus.RENTED,
-                rental.getVehicle().getStatus()
-        );
-
-        assertEquals(
-                1,
-                rentalRepository.findAll().size()
-        );
+        Vehicle savedVehicle = vehicleRepository.findById("V1");
+        assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
     }
 
-    /**
-     * Verifies that a vehicle whose status is already rented
-     * cannot be rented again.
-     */
     @Test
     public void rentVehicle_whenVehicleStatusIsRented_shouldThrowException() {
-
-        Vehicle vehicle =
-                vehicleRepository.findAll().get(0);
-
+        Vehicle vehicle = vehicleRepository.findById("V1");
         vehicle.setStatus(VehicleStatus.RENTED);
+        vehicleRepository.save(vehicle);
 
         assertThrows(
                 IllegalStateException.class,
                 () -> rentalService.rentVehicle(
                         "R2",
-                        vehicle.getId(),
+                        "V1",
                         "Sara",
                         "sara@example.com",
                         LocalDate.of(2026, 7, 10),
@@ -128,12 +82,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that an unknown vehicle identifier is rejected.
-     */
     @Test
     public void rentVehicle_whenVehicleDoesNotExist_shouldThrowException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rentalService.rentVehicle(
@@ -147,12 +97,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that a null rental start date is rejected.
-     */
     @Test
     public void rentVehicle_whenStartDateIsNull_shouldThrowException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rentalService.rentVehicle(
@@ -166,12 +112,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that a null rental end date is rejected.
-     */
     @Test
     public void rentVehicle_whenEndDateIsNull_shouldThrowException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rentalService.rentVehicle(
@@ -185,12 +127,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that an end date before the start date is rejected.
-     */
     @Test
     public void rentVehicle_whenEndDateIsBeforeStartDate_shouldThrowException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rentalService.rentVehicle(
@@ -204,12 +142,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that equal start and end dates are rejected.
-     */
     @Test
     public void rentVehicle_whenEndDateEqualsStartDate_shouldThrowException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rentalService.rentVehicle(
@@ -223,12 +157,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that a rental longer than thirty days is rejected.
-     */
     @Test
     public void rentVehicle_whenRentalPeriodExceedsThirtyDays_shouldThrowException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rentalService.rentVehicle(
@@ -242,12 +172,8 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that a rental lasting exactly thirty days is accepted.
-     */
     @Test
     public void rentVehicle_whenRentalPeriodIsExactlyThirtyDays_shouldCreateRental() {
-
         Rental rental = rentalService.rentVehicle(
                 "R9",
                 "V1",
@@ -257,31 +183,17 @@ public class RentalServiceTest {
                 LocalDate.of(2026, 7, 31)
         );
 
-        assertEquals(
-                RentalStatus.ACTIVE,
-                rental.getStatus()
-        );
+        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
+        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
+        assertEquals(1, rentalRepository.findAll().size());
 
-        assertEquals(
-                VehicleStatus.RENTED,
-                rental.getVehicle().getStatus()
-        );
-
-        assertEquals(
-                1,
-                rentalRepository.findAll().size()
-        );
+        Vehicle savedVehicle = vehicleRepository.findById("V1");
+        assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
     }
 
-    /**
-     * Verifies that an active rental prevents double booking
-     * of the same vehicle.
-     */
     @Test
     public void rentVehicle_whenVehicleHasActiveRental_shouldThrowException() {
-
-        Vehicle vehicle =
-                vehicleRepository.findAll().get(0);
+        Vehicle vehicle = vehicleRepository.findById("V1");
 
         Rental existingRental = new Rental(
                 "R10",
@@ -299,7 +211,7 @@ public class RentalServiceTest {
                 IllegalStateException.class,
                 () -> rentalService.rentVehicle(
                         "R11",
-                        vehicle.getId(),
+                        "V1",
                         "Dana",
                         "dana@example.com",
                         LocalDate.of(2026, 7, 6),
@@ -308,15 +220,9 @@ public class RentalServiceTest {
         );
     }
 
-    /**
-     * Verifies that a closed previous rental does not prevent
-     * creating a new rental for the same vehicle.
-     */
     @Test
     public void rentVehicle_whenPreviousRentalIsClosed_shouldCreateNewRental() {
-
-        Vehicle vehicle =
-                vehicleRepository.findAll().get(0);
+        Vehicle vehicle = vehicleRepository.findById("V1");
 
         Rental closedRental = new Rental(
                 "R12",
@@ -329,30 +235,23 @@ public class RentalServiceTest {
         );
 
         rentalRepository.save(closedRental);
+
         vehicle.setStatus(VehicleStatus.AVAILABLE);
+        vehicleRepository.save(vehicle);
 
         Rental newRental = rentalService.rentVehicle(
                 "R13",
-                vehicle.getId(),
+                "V1",
                 "Aya",
                 "aya@example.com",
                 LocalDate.of(2026, 7, 10),
                 LocalDate.of(2026, 7, 15)
         );
 
-        assertEquals(
-                RentalStatus.ACTIVE,
-                newRental.getStatus()
-        );
+        assertEquals(RentalStatus.ACTIVE, newRental.getStatus());
+        assertEquals(2, rentalRepository.findAll().size());
 
-        assertEquals(
-                VehicleStatus.RENTED,
-                vehicle.getStatus()
-        );
-
-        assertEquals(
-                2,
-                rentalRepository.findAll().size()
-        );
+        Vehicle savedVehicle = vehicleRepository.findById("V1");
+        assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
     }
 }

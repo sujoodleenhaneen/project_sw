@@ -2,88 +2,57 @@ package com.vrms.application;
 
 import java.util.Properties;
 
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import io.github.cdimascio.dotenv.Dotenv;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
-/**
- * Sends rental notifications to customers using Gmail SMTP.
- */
 public class EmailNotificationService implements NotificationService {
 
-    /**
-     * Gmail SMTP server address.
-     */
-    private static final String SMTP_HOST = "smtp.gmail.com";
+    private final String username;
+    private final String password;
 
-    /**
-     * Gmail SMTP port for STARTTLS.
-     */
-    private static final String SMTP_PORT = "587";
+    public EmailNotificationService() {
+        Dotenv dotenv = Dotenv.load();
 
-    /**
-     * Sends an email notification to the specified customer.
-     *
-     * @param recipientEmail the customer's email address
-     * @param subject the email subject
-     * @param message the email message
-     */
+        this.username = dotenv.get("EMAIL_USERNAME");
+        this.password = dotenv.get("EMAIL_PASSWORD");
+
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalStateException("EMAIL_USERNAME is missing from .env");
+        }
+
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalStateException("EMAIL_PASSWORD is missing from .env");
+        }
+    }
+
     @Override
-    public void sendNotification(String recipientEmail,
-                                 String subject,
-                                 String message) {
+    public void sendNotification(String recipientEmail, String subject, String message) {
+    	Properties properties = new Properties();
 
-        String senderEmail = System.getenv("GMAIL_ADDRESS");
-        String appPassword = System.getenv("GMAIL_APP_PASSWORD");
-
-        if (senderEmail == null || senderEmail.trim().isEmpty()) {
-            throw new IllegalStateException(
-                    "GMAIL_ADDRESS environment variable is missing."
-            );
-        }
-
-        if (appPassword == null || appPassword.trim().isEmpty()) {
-            throw new IllegalStateException(
-                    "GMAIL_APP_PASSWORD environment variable is missing."
-            );
-        }
-
-        String cleanedPassword = appPassword.replace(" ", "");
-
-        Properties properties = new Properties();
-        properties.put("mail.smtp.auth", "true");
-        properties.put("mail.smtp.starttls.enable", "true");
-        properties.put("mail.smtp.starttls.required", "true");
-        properties.put("mail.smtp.host", SMTP_HOST);
-        properties.put("mail.smtp.port", SMTP_PORT);
-        properties.put("mail.smtp.connectiontimeout", "10000");
-        properties.put("mail.smtp.timeout", "10000");
-        properties.put("mail.smtp.writetimeout", "10000");
-
-        Session session = Session.getInstance(
-                properties,
-                new Authenticator() {
-                    @Override
-                    protected PasswordAuthentication
-                    getPasswordAuthentication() {
-
-                        return new PasswordAuthentication(
-                                senderEmail,
-                                cleanedPassword
-                        );
-                    }
-                }
-        );
+    	properties.put("mail.smtp.auth", "true");
+    	properties.put("mail.smtp.starttls.enable", "true");
+    	properties.put("mail.smtp.starttls.required", "true");
+    	properties.put("mail.smtp.host", "smtp.gmail.com");
+    	properties.put("mail.smtp.port", "587");
+    	properties.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        Session session = Session.getInstance(properties, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(username, password.replace(" ", ""));
+            }
+        });
 
         try {
             Message email = new MimeMessage(session);
 
-            email.setFrom(new InternetAddress(senderEmail));
+            email.setFrom(new InternetAddress(username));
             email.setRecipients(
                     Message.RecipientType.TO,
                     InternetAddress.parse(recipientEmail)
@@ -94,15 +63,13 @@ public class EmailNotificationService implements NotificationService {
 
             Transport.send(email);
 
-            System.out.println(
-                    "Real email sent successfully to: "
-                            + recipientEmail
-            );
+            System.out.println("Email sent successfully to " + recipientEmail);
 
         } catch (MessagingException exception) {
+            exception.printStackTrace();
+
             throw new IllegalStateException(
-                    "Email could not be sent: "
-                            + exception.getMessage(),
+                    "Email could not be sent: " + exception.getMessage(),
                     exception
             );
         }
