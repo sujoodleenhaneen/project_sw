@@ -20,7 +20,7 @@ import com.vrms.persistence.InMemoryVehicleRepository;
 import com.vrms.persistence.ManagerRepository;
 import com.vrms.persistence.RentalRepository;
 import com.vrms.persistence.VehicleRepository;
-
+import com.vrms.domain.StandardStrategy;
 /**
  * Runs the console-based Vehicle Rental Management System.
  */
@@ -62,6 +62,7 @@ public class Main {
                         vehicleRepository,
                         rentalRepository
                 );
+        rentalService.setRentalStrategy(new StandardStrategy());
 
         NotificationService notificationService =
                 new EmailNotificationService();
@@ -126,8 +127,10 @@ public class Main {
                 System.out.println(
                         "3. Check rental expiry reminders"
                 );
-                System.out.println("4. Logout");
-                System.out.println("5. Exit");
+                System.out.println("4. return Vehicle");
+           
+                System.out.println("5. Logout");
+                System.out.println("6. Exit");
                 System.out.print("Choose: ");
 
                 String choice = input.nextLine().trim();
@@ -153,14 +156,22 @@ public class Main {
                                 rentalReminderService
                         );
                         break;
-
+                        
                     case "4":
+                        handleVehicleReturn(
+                                input,
+                                rentalController
+                        );
+                        break;
+                    	
+
+                    case "5":
                         System.out.println(
                                 loginController.logout()
                         );
                         break;
 
-                    case "5":
+                    case "6":
                         run = false;
                         System.out.println("Program closed");
                         break;
@@ -169,7 +180,7 @@ public class Main {
                         System.out.println(
                                 "Invalid choice. "
                                         + "Please enter a number "
-                                        + "from 1 to 5."
+                                        + "from 1 to 6."
                         );
                 }
             }
@@ -358,6 +369,72 @@ public class Main {
 
             System.out.println(
                     "Rental failed: "
+                            + exception.getMessage()
+            );
+        }
+    }
+    /**
+     * Reads a vehicle identifier and returns the rented vehicle.
+     *
+     * <p>The rental cost is calculated using the strategy configured
+     * in {@link RentalService}. After a successful return, the rental
+     * is closed and the vehicle becomes available again.</p>
+     *
+     * @param input scanner used to read user input
+     * @param rentalController controller used to return the vehicle
+     */
+    private static void handleVehicleReturn(
+            Scanner input,
+            RentalController rentalController) {
+
+        String vehicleId = readRequiredText(
+                input,
+                "Vehicle ID to return: ",
+                "Vehicle ID cannot be empty."
+        );
+
+        try {
+
+            Rental rental =
+                    rentalController.returnVehicle(
+                            vehicleId
+                    );
+
+            System.out.println();
+            System.out.println(
+                    "Vehicle returned successfully."
+            );
+
+            System.out.println(
+                    "Rental ID: "
+                            + rental.getRentalId()
+            );
+
+            System.out.println(
+                    "Customer: "
+                            + rental.getCustomerName()
+            );
+
+            System.out.println(
+                    "Vehicle: "
+                            + rental.getVehicle()
+            );
+
+            System.out.println(
+                    "Rental status: "
+                            + rental.getStatus()
+            );
+
+            System.out.printf(
+                    "Total rental cost: %.2f%n",
+                    rental.getTotalCost()
+            );
+
+        } catch (IllegalArgumentException
+                 | IllegalStateException exception) {
+
+            System.out.println(
+                    "Vehicle return failed: "
                             + exception.getMessage()
             );
         }
