@@ -106,4 +106,54 @@ public class DomainModelTest {
 
         assertEquals(RentalStatus.CLOSED, rental.getStatus());
     }
+    
+    @Test
+    public void newRental_totalCostShouldInitiallyBeZero() {
+
+        Vehicle vehicle = new Vehicle(
+                "V1",
+                "Toyota",
+                "Corolla",
+                40,
+                VehicleStatus.RENTED
+        );
+
+        Rental rental = new Rental(
+                "R1",
+                vehicle,
+                "Haneen",
+                "haneen@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15),
+                RentalStatus.ACTIVE
+        );
+
+        assertEquals(0.0, rental.getTotalCost(), 0.001);
+    }
+
+    @Test
+    public void setTotalCost_shouldChangeRentalTotalCost() {
+
+        Vehicle vehicle = new Vehicle(
+                "V1",
+                "Toyota",
+                "Corolla",
+                40,
+                VehicleStatus.RENTED
+        );
+
+        Rental rental = new Rental(
+                "R1",
+                vehicle,
+                "Haneen",
+                "haneen@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15),
+                RentalStatus.ACTIVE
+        );
+
+        rental.setTotalCost(200.0);
+
+        assertEquals(200.0, rental.getTotalCost(), 0.001);
+    }
 }

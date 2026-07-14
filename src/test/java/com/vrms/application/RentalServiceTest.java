@@ -1,6 +1,7 @@
 package com.vrms.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Path;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.vrms.domain.Rental;
+import com.vrms.domain.RentalCostStrategy;
 import com.vrms.domain.RentalStatus;
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
@@ -253,5 +255,114 @@ public class RentalServiceTest {
 
         Vehicle savedVehicle = vehicleRepository.findById("V1");
         assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
+    }
+
+    @Test
+    public void setRentalStrategy_shouldStoreRentalStrategy() {
+        RentalCostStrategy strategy = (rental, returnDate) -> 100.0;
+
+        rentalService.setRentalStrategy(strategy);
+
+        assertSame(strategy, rentalService.getRentalStrategy());
+    }
+
+    @Test
+    public void returnVehicle_whenStrategyIsSet_shouldCloseRentalAndCalculateCost() {
+        Rental rental = rentalService.rentVehicle(
+                "R14",
+                "V1",
+                "Ahmad",
+                "ahmad@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15)
+        );
+
+        rentalService.setRentalStrategy(
+                (currentRental, returnDate) -> 250.0
+        );
+
+        Rental returnedRental = rentalService.returnVehicle("V1");
+
+        assertEquals(rental.getRentalId(), returnedRental.getRentalId());
+        assertEquals(250.0, returnedRental.getTotalCost(), 0.001);
+        assertEquals(RentalStatus.CLOSED, returnedRental.getStatus());
+        assertEquals(VehicleStatus.AVAILABLE, returnedRental.getVehicle().getStatus());
+
+        Vehicle savedVehicle = vehicleRepository.findById("V1");
+        assertEquals(VehicleStatus.AVAILABLE, savedVehicle.getStatus());
+
+        Rental savedRental = rentalRepository.findById("R14");
+        assertEquals(RentalStatus.CLOSED, savedRental.getStatus());
+    }
+
+    @Test
+    public void returnVehicle_whenStrategyIsNotSet_shouldThrowException() {
+        Rental rental = rentalService.rentVehicle(
+                "R15",
+                "V1",
+                "Sara",
+                "sara@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15)
+        );
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> rentalService.returnVehicle("V1")
+        );
+
+        assertEquals(
+                "No rental cost strategy is set.",
+                exception.getMessage()
+        );
+
+        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
+        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
+        assertEquals(0.0, rental.getTotalCost(), 0.001);
+    }
+
+    @Test
+    public void returnVehicle_whenRentalDoesNotExist_shouldThrowException() {
+        rentalService.setRentalStrategy(
+                (rental, returnDate) -> 100.0
+        );
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> rentalService.returnVehicle("V1")
+        );
+
+        assertEquals(
+                "Rental for vehicle not found.",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    public void returnVehicle_shouldPassRentalToSelectedStrategy() {
+        Rental rental = rentalService.rentVehicle(
+                "R16",
+                "V1",
+                "Omar",
+                "omar@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15)
+        );
+
+        Rental[] receivedRental = new Rental[1];
+
+        rentalService.setRentalStrategy(
+                (currentRental, returnDate) -> {
+                    receivedRental[0] = currentRental;
+                    return 180.0;
+                }
+        );
+
+        rentalService.returnVehicle("V1");
+
+        assertEquals(
+                rental.getRentalId(),
+                receivedRental[0].getRentalId()
+        );
     }
 }

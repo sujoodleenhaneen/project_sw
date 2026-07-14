@@ -14,6 +14,7 @@ import com.vrms.application.RentalReminderService;
 import com.vrms.application.RentalService;
 import com.vrms.application.VehicleCatalogService;
 import com.vrms.domain.Rental;
+import com.vrms.domain.StandardStrategy;
 import com.vrms.domain.Vehicle;
 import com.vrms.persistence.FileManagerRepository;
 import com.vrms.persistence.FileRentalRepository;
@@ -34,6 +35,7 @@ public class Main {
         AuthService authService = new AuthService(managerRepository);
         VehicleCatalogService vehicleCatalogService = new VehicleCatalogService(vehicleRepository, authService);
         RentalService rentalService = new RentalService(vehicleRepository, rentalRepository);
+        rentalService.setRentalStrategy(new StandardStrategy());
 
         NotificationService notificationService = new EmailNotificationService();
         RentalReminderService rentalReminderService = new RentalReminderService(notificationService, rentalRepository);
@@ -72,8 +74,9 @@ public class Main {
                 System.out.println("1. View available vehicles");
                 System.out.println("2. Rent a vehicle");
                 System.out.println("3. Check rental expiry reminders");
-                System.out.println("4. Logout");
-                System.out.println("5. Exit");
+                System.out.println("4. Return vehicle");
+                System.out.println("5. Logout");
+                System.out.println("6. Exit");
                 System.out.print("Choose: ");
 
                 String choice = input.nextLine().trim();
@@ -92,16 +95,20 @@ public class Main {
                         break;
 
                     case "4":
-                        System.out.println(loginController.logout());
+                        handleVehicleReturn(input, rentalController);
                         break;
 
                     case "5":
+                        System.out.println(loginController.logout());
+                        break;
+
+                    case "6":
                         run = false;
                         System.out.println("Program closed");
                         break;
 
                     default:
-                        System.out.println("Invalid choice. Please enter a number from 1 to 5.");
+                        System.out.println("Invalid choice. Please enter a number from 1 to 6.");
                 }
             }
         }
@@ -200,17 +207,37 @@ public class Main {
                 );
 
             } catch (IllegalStateException exception) {
-                System.out.println(
-                        "Rental created, but email was not sent: "
-                                + exception.getMessage()
-                );
+                System.out.println("Rental created, but email was not sent: " + exception.getMessage());
             }
 
         } catch (IllegalArgumentException | IllegalStateException exception) {
             System.out.println("Rental failed: " + exception.getMessage());
         }
-        
     }
+
+    private static void handleVehicleReturn(Scanner input, RentalController rentalController) {
+        String vehicleId = readRequiredText(
+                input,
+                "Vehicle ID to return: ",
+                "Vehicle ID cannot be empty."
+        );
+
+        try {
+            Rental rental = rentalController.returnVehicle(vehicleId);
+
+            System.out.println();
+            System.out.println("Vehicle returned successfully.");
+            System.out.println("Rental ID: " + rental.getRentalId());
+            System.out.println("Customer: " + rental.getCustomerName());
+            System.out.println("Vehicle: " + rental.getVehicle());
+            System.out.println("Rental status: " + rental.getStatus());
+            System.out.printf("Total rental cost: %.2f%n", rental.getTotalCost());
+
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            System.out.println("Vehicle return failed: " + exception.getMessage());
+        }
+    }
+
     private static void handleReminderCheck(RentalReminderService reminderService) {
         try {
             int remindersGenerated = reminderService.checkAllRentalsAndSendReminders(LocalDate.now());
@@ -267,6 +294,7 @@ public class Main {
 
             try {
                 return LocalDate.parse(dateText);
+
             } catch (DateTimeParseException exception) {
                 System.out.println("Invalid date. Use YYYY-MM-DD, for example: 2026-07-13.");
             }
