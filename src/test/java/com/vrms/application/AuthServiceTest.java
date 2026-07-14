@@ -1,36 +1,38 @@
-
 package com.vrms.application;
-import com.vrms.persistence.InMemoryManagerRepository;
-import com.vrms.persistence.ManagerRepository;
-import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import com.vrms.persistence.FileManagerRepository;
+import com.vrms.persistence.ManagerRepository;
 
 class AuthServiceTest {
-	private AuthService authService;
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
 
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
+    @TempDir
+    Path tempDir;
 
-	@BeforeEach
-    void setUp() {
-        ManagerRepository managerRepository = new InMemoryManagerRepository();
+    private AuthService authService;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        Path managersFile = tempDir.resolve("managers.txt");
+        Files.write(managersFile, Arrays.asList("admin,1234"), StandardCharsets.UTF_8);
+
+        ManagerRepository managerRepository = new FileManagerRepository(managersFile);
         authService = new AuthService(managerRepository);
     }
 
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-
-	@Test
+    @Test
     void loginWithCorrectData() {
         boolean result = authService.login("admin", "1234");
 
@@ -57,10 +59,8 @@ class AuthServiceTest {
     @Test
     void logoutManager() {
         authService.login("admin", "1234");
-
         authService.logout();
 
         assertFalse(authService.isLoggedIn());
     }
-
 }

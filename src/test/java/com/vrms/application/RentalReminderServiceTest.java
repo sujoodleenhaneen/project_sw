@@ -12,98 +12,120 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.vrms.domain.Rental;
 import com.vrms.domain.RentalStatus;
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
-import com.vrms.persistence.InMemoryRentalRepository;
-import com.vrms.persistence.RentalRepository;
+import com.vrms.persistence.FileRentalRepository;
+import com.vrms.persistence.FileVehicleRepository;
 
 public class RentalReminderServiceTest {
 
-    private NotificationService notificationService;
+    @TempDir
+    Path tempDir;
 
+    private NotificationService notificationService;
     private RentalReminderService reminderService;
-    
+    private FileVehicleRepository vehicleRepository;
+    private FileRentalRepository rentalRepository;
+
     @BeforeEach
     public void setUp() {
+        vehicleRepository = new FileVehicleRepository(tempDir.resolve("vehicles.txt"));
+        rentalRepository = new FileRentalRepository(tempDir.resolve("rentals.txt"), vehicleRepository);
+
         notificationService = mock(NotificationService.class);
-        reminderService =
-                new RentalReminderService(notificationService);
+        reminderService = new RentalReminderService(notificationService, rentalRepository);
     }
 
-   
     @Test
-    public void checkReminder_expiresTomorrow_sendsNotification() {
-
+    public void checkReminder_expiresInTwoDays_sendsNotification() {
         Rental rental = createRental(
                 "R1",
+                "V1",
                 "haneen@example.com",
-                LocalDate.of(2026, 7, 15),
+                LocalDate.of(2026, 7, 16),
                 RentalStatus.ACTIVE
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertTrue(reminderGenerated);
 
-        verify(notificationService, times(1))
-                .sendNotification(
-                        eq("haneen@example.com"),
-                        eq("Rental Expiry Reminder"),
-                        contains("expires on 2026-07-15")
-                );
+        verify(notificationService).sendNotification(
+                eq("haneen@example.com"),
+                eq("Rental Expiry Reminder"),
+                contains("will expire in two days on 2026-07-16")
+        );
     }
 
     @Test
     public void checkReminder_expiresToday_sendsNotification() {
-
         Rental rental = createRental(
                 "R2",
+                "V2",
                 "sara@example.com",
                 LocalDate.of(2026, 7, 14),
                 RentalStatus.ACTIVE
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertTrue(reminderGenerated);
 
         verify(notificationService).sendNotification(
                 eq("sara@example.com"),
-                eq("Rental Expiry Reminder"),
-                contains("expires on 2026-07-14")
+                eq("Rental Expired"),
+                contains("expires today")
         );
     }
 
     @Test
-    public void checkReminder_expiryIsFar_doesNotSendNotification() {
-
+    public void checkReminder_expiresTomorrow_doesNotSendNotification() {
         Rental rental = createRental(
                 "R3",
+                "V3",
                 "omar@example.com",
+                LocalDate.of(2026, 7, 15),
+                RentalStatus.ACTIVE
+        );
+
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
+
+        assertFalse(reminderGenerated);
+        verifyNoInteractions(notificationService);
+    }
+
+    @Test
+    public void checkReminder_expiryIsFar_doesNotSendNotification() {
+        Rental rental = createRental(
+                "R4",
+                "V4",
+                "lina@example.com",
                 LocalDate.of(2026, 7, 20),
                 RentalStatus.ACTIVE
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertFalse(reminderGenerated);
         verifyNoInteractions(notificationService);
@@ -111,19 +133,18 @@ public class RentalReminderServiceTest {
 
     @Test
     public void checkReminder_alreadyExpired_doesNotSendNotification() {
-
         Rental rental = createRental(
-                "R4",
-                "lina@example.com",
+                "R5",
+                "V1",
+                "mona@example.com",
                 LocalDate.of(2026, 7, 10),
                 RentalStatus.ACTIVE
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertFalse(reminderGenerated);
         verifyNoInteractions(notificationService);
@@ -131,19 +152,18 @@ public class RentalReminderServiceTest {
 
     @Test
     public void checkReminder_closedRental_doesNotSendNotification() {
-
         Rental rental = createRental(
-                "R5",
-                "mona@example.com",
-                LocalDate.of(2026, 7, 15),
+                "R6",
+                "V1",
+                "aya@example.com",
+                LocalDate.of(2026, 7, 16),
                 RentalStatus.CLOSED
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertFalse(reminderGenerated);
         verifyNoInteractions(notificationService);
@@ -151,124 +171,122 @@ public class RentalReminderServiceTest {
 
     @Test
     public void checkAllRentals_eligibleRentals_returnsReminderCount() {
-
-        RentalRepository rentalRepository =
-                new InMemoryRentalRepository();
-
-        rentalRepository.save(createRental(
-                "R6",
+        saveRental(createRental(
+                "R7",
+                "V1",
                 "customer1@example.com",
+                LocalDate.of(2026, 7, 16),
+                RentalStatus.ACTIVE
+        ));
+
+        saveRental(createRental(
+                "R8",
+                "V2",
+                "customer2@example.com",
                 LocalDate.of(2026, 7, 14),
                 RentalStatus.ACTIVE
         ));
 
-        rentalRepository.save(createRental(
-                "R7",
-                "customer2@example.com",
-                LocalDate.of(2026, 7, 15),
-                RentalStatus.ACTIVE
-        ));
-
-        rentalRepository.save(createRental(
-                "R8",
+        saveRental(createRental(
+                "R9",
+                "V3",
                 "customer3@example.com",
                 LocalDate.of(2026, 7, 20),
                 RentalStatus.ACTIVE
         ));
 
-        rentalRepository.save(createRental(
-                "R9",
+        saveRental(createRental(
+                "R10",
+                "V4",
                 "customer4@example.com",
-                LocalDate.of(2026, 7, 15),
+                LocalDate.of(2026, 7, 16),
                 RentalStatus.CLOSED
         ));
 
-        RentalReminderService serviceWithRepository =
-                new RentalReminderService(
-                        notificationService,
-                        rentalRepository
-                );
-
-        int remindersGenerated =
-                serviceWithRepository
-                        .checkAllRentalsAndSendReminders(
-                                LocalDate.of(2026, 7, 14)
-                        );
+        int remindersGenerated = reminderService.checkAllRentalsAndSendReminders(
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertEquals(2, remindersGenerated);
 
-        verify(notificationService, times(2))
-                .sendNotification(
-                        anyString(),
-                        eq("Rental Expiry Reminder"),
-                        contains("expires on")
-                );
+        verify(notificationService).sendNotification(
+                anyString(),
+                eq("Rental Expiry Reminder"),
+                contains("will expire in two days")
+        );
+
+        verify(notificationService).sendNotification(
+                anyString(),
+                eq("Rental Expired"),
+                contains("expires today")
+        );
+
+        verify(notificationService, times(2)).sendNotification(
+                anyString(),
+                anyString(),
+                anyString()
+        );
     }
 
     @Test
     public void addObserver_secondObserver_notifiesBothObservers() {
-
-        NotificationService secondObserver =
-                mock(NotificationService.class);
-
+        NotificationService secondObserver = mock(NotificationService.class);
         reminderService.addObserver(secondObserver);
 
         Rental rental = createRental(
-                "R10",
+                "R11",
+                "V1",
                 "rawan@example.com",
-                LocalDate.of(2026, 7, 15),
+                LocalDate.of(2026, 7, 16),
                 RentalStatus.ACTIVE
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertTrue(reminderGenerated);
 
         verify(notificationService).sendNotification(
                 eq("rawan@example.com"),
                 eq("Rental Expiry Reminder"),
-                contains("expires on 2026-07-15")
+                contains("will expire in two days")
         );
 
         verify(secondObserver).sendNotification(
                 eq("rawan@example.com"),
                 eq("Rental Expiry Reminder"),
-                contains("expires on 2026-07-15")
+                contains("will expire in two days")
         );
     }
 
     @Test
     public void removeObserver_removedObserver_isNotNotified() {
-
-        NotificationService secondObserver =
-                mock(NotificationService.class);
+        NotificationService secondObserver = mock(NotificationService.class);
 
         reminderService.addObserver(secondObserver);
         reminderService.removeObserver(secondObserver);
 
         Rental rental = createRental(
-                "R11",
+                "R12",
+                "V1",
                 "dana@example.com",
-                LocalDate.of(2026, 7, 15),
+                LocalDate.of(2026, 7, 16),
                 RentalStatus.ACTIVE
         );
 
-        boolean reminderGenerated =
-                reminderService.checkAndSendReminder(
-                        rental,
-                        LocalDate.of(2026, 7, 14)
-                );
+        boolean reminderGenerated = reminderService.checkAndSendReminder(
+                rental,
+                LocalDate.of(2026, 7, 14)
+        );
 
         assertTrue(reminderGenerated);
 
         verify(notificationService).sendNotification(
                 eq("dana@example.com"),
                 eq("Rental Expiry Reminder"),
-                contains("expires on 2026-07-15")
+                contains("will expire in two days")
         );
 
         verifyNoInteractions(secondObserver);
@@ -276,19 +294,14 @@ public class RentalReminderServiceTest {
 
     @Test
     public void addObserver_nullObserver_throwsException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> reminderService.addObserver(null)
         );
     }
 
-    /**
-     * Verifies that a null rental is rejected.
-     */
     @Test
     public void checkReminder_nullRental_throwsException() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> reminderService.checkAndSendReminder(
@@ -300,75 +313,54 @@ public class RentalReminderServiceTest {
 
     @Test
     public void checkReminder_nullCurrentDate_throwsException() {
-
         Rental rental = createRental(
-                "R12",
+                "R13",
+                "V1",
                 "aya@example.com",
-                LocalDate.of(2026, 7, 15),
+                LocalDate.of(2026, 7, 16),
                 RentalStatus.ACTIVE
         );
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> reminderService.checkAndSendReminder(
-                        rental,
-                        null
-                )
+                () -> reminderService.checkAndSendReminder(rental, null)
         );
     }
+
     @Test
     public void checkAllRentals_nullCurrentDate_throwsException() {
-
-        RentalRepository rentalRepository =
-                new InMemoryRentalRepository();
-
-        RentalReminderService serviceWithRepository =
-                new RentalReminderService(
-                        notificationService,
-                        rentalRepository
-                );
-
         assertThrows(
                 IllegalArgumentException.class,
-                () -> serviceWithRepository
-                        .checkAllRentalsAndSendReminders(null)
+                () -> reminderService.checkAllRentalsAndSendReminders(null)
         );
     }
 
     @Test
     public void checkAllRentals_repositoryNotConfigured_throwsException() {
+        RentalReminderService serviceWithoutRepository =
+                new RentalReminderService(notificationService);
 
         assertThrows(
                 IllegalStateException.class,
-                () -> reminderService
-                        .checkAllRentalsAndSendReminders(
-                                LocalDate.of(2026, 7, 14)
-                        )
+                () -> serviceWithoutRepository.checkAllRentalsAndSendReminders(
+                        LocalDate.of(2026, 7, 14)
+                )
         );
     }
 
-    /**
-     * Creates a rental object used during reminder tests.
-     *
-     * @param rentalId rental identifier
-     * @param customerEmail customer email
-     * @param endDate rental expiry date
-     * @param status rental status
-     * @return created rental
-     */
     private Rental createRental(
             String rentalId,
+            String vehicleId,
             String customerEmail,
             LocalDate endDate,
             RentalStatus status) {
 
-        VehicleStatus vehicleStatus =
-                status == RentalStatus.ACTIVE
-                        ? VehicleStatus.RENTED
-                        : VehicleStatus.AVAILABLE;
+        VehicleStatus vehicleStatus = status == RentalStatus.ACTIVE
+                ? VehicleStatus.RENTED
+                : VehicleStatus.AVAILABLE;
 
         Vehicle vehicle = new Vehicle(
-                "V-" + rentalId,
+                vehicleId,
                 "Toyota",
                 "Corolla",
                 40.0,
@@ -384,5 +376,10 @@ public class RentalReminderServiceTest {
                 endDate,
                 status
         );
+    }
+
+    private void saveRental(Rental rental) {
+        vehicleRepository.save(rental.getVehicle());
+        rentalRepository.save(rental);
     }
 }

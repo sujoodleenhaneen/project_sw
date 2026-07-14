@@ -128,6 +128,7 @@ public class RentalService {
         );
 
         vehicle.setStatus(VehicleStatus.RENTED);
+        vehicleRepository.save(vehicle);
         rentalRepository.save(rental);
 
         return rental;
@@ -257,7 +258,8 @@ public class RentalService {
 
         rental.closeRental();
         rental.getVehicle().setStatus(VehicleStatus.AVAILABLE);
-
+        vehicleRepository.save(rental.getVehicle());
+        rentalRepository.update(rental);
         return rental;
     }
 }

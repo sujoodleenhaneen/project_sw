@@ -1,52 +1,64 @@
 package com.vrms.application;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
-import com.vrms.persistence.InMemoryManagerRepository;
-import com.vrms.persistence.InMemoryVehicleRepository;
+import com.vrms.persistence.FileManagerRepository;
+import com.vrms.persistence.FileVehicleRepository;
 import com.vrms.persistence.ManagerRepository;
 import com.vrms.persistence.VehicleRepository;
-import java.util.List;
+
 class VehicleCatalogServiceTest {
-	private AuthService authService;
+
+    @TempDir
+    Path tempDir;
+
+    private AuthService authService;
     private VehicleCatalogService vehicleCatalogService;
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
 
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
+    @BeforeEach
+    void setUp() throws IOException {
+        Path managersFile = tempDir.resolve("managers.txt");
+        Path vehiclesFile = tempDir.resolve("vehicles.txt");
 
-	@BeforeEach
-    void setUp() {
-        ManagerRepository managerRepository = new InMemoryManagerRepository();
-        VehicleRepository vehicleRepository = new InMemoryVehicleRepository();
+        Files.write(managersFile, Arrays.asList("admin,1234"), StandardCharsets.UTF_8);
+
+        Files.write(vehiclesFile, Arrays.asList(
+                "V1,Toyota,Corolla,40.0,AVAILABLE",
+                "V2,Kia,Sportage,60.0,RENTED",
+                "V3,Honda,Civic,45.0,AVAILABLE",
+                "V4,Hyundai,Tucson,55.0,RENTED"
+        ), StandardCharsets.UTF_8);
+
+        ManagerRepository managerRepository = new FileManagerRepository(managersFile);
+        VehicleRepository vehicleRepository = new FileVehicleRepository(vehiclesFile);
 
         authService = new AuthService(managerRepository);
         vehicleCatalogService = new VehicleCatalogService(vehicleRepository, authService);
     }
 
-	@AfterEach
-	void tearDown() throws Exception {
-	}
-
-	@Test
+    @Test
     void displayAvailableVehicles() {
         authService.login("admin", "1234");
 
         List<Vehicle> vehicles = vehicleCatalogService.getAvailableVehicles();
 
         assertEquals(2, vehicles.size());
-        assertTrue(vehicles.get(0).getStatus() == VehicleStatus.AVAILABLE);
-        assertTrue(vehicles.get(1).getStatus() == VehicleStatus.AVAILABLE);
+        assertEquals(VehicleStatus.AVAILABLE, vehicles.get(0).getStatus());
+        assertEquals(VehicleStatus.AVAILABLE, vehicles.get(1).getStatus());
     }
 
     @Test
@@ -56,7 +68,7 @@ class VehicleCatalogServiceTest {
         List<Vehicle> vehicles = vehicleCatalogService.getAvailableVehicles();
 
         for (Vehicle vehicle : vehicles) {
-            assertTrue(vehicle.getStatus() != VehicleStatus.RENTED);
+            assertEquals(VehicleStatus.AVAILABLE, vehicle.getStatus());
         }
     }
 
@@ -64,5 +76,4 @@ class VehicleCatalogServiceTest {
     void requireLoginToViewVehicles() {
         assertThrows(IllegalStateException.class, () -> vehicleCatalogService.getAvailableVehicles());
     }
-
 }

@@ -1,0 +1,4 @@
+V1,Toyota,Corolla,40.0,AVAILABLE
+V2,Kia,Sportage,60.0,RENTED
+V3,Honda,Civic,45.0,AVAILABLE
+V4,Hyundai,Tucson,55.0,RENTED
