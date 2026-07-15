@@ -234,32 +234,55 @@ public class RentalService {
     }
 
     /**
-     * Returns a rented vehicle and closes its rental record.
-     *
-     * <p>The method finds the rental record using the vehicle identifier, calculates
-     * the total rental cost using the selected rental cost strategy, closes the rental
-     * record, and changes the vehicle status back to {@link VehicleStatus#AVAILABLE}.</p>
+     * Returns a rented vehicle using the current date.
      *
      * @param vehicleId identifier of the vehicle being returned
-     * @return the closed rental record after calculating the total cost
-     * @throws IllegalArgumentException if no rental cost strategy is set or if no rental
-     *                                  record is found for the given vehicle
+     * @return the closed rental record
      */
     public Rental returnVehicle(String vehicleId) {
+        return returnVehicle(vehicleId, LocalDate.now());
+    }
 
-        Rental rental = findRentalByVehicleId(vehicleId);
-        LocalDate returnDate = LocalDate.now();
+    /**
+     * Returns a rented vehicle using the supplied return date.
+     *
+     * @param vehicleId identifier of the vehicle being returned
+     * @param returnDate actual vehicle return date
+     * @return the closed and saved rental
+     */
+    public Rental returnVehicle(
+            String vehicleId,
+            LocalDate returnDate) {
 
-        if (rentalStrategy != null) {
-            rental.setTotalCost(rentalStrategy.calculateCost(rental, returnDate));
-        } else {
-            throw new IllegalArgumentException("No rental cost strategy is set.");
+        if (rentalStrategy == null) {
+            throw new IllegalArgumentException(
+                    "No rental cost strategy is set."
+            );
         }
 
+        if (returnDate == null) {
+            throw new IllegalArgumentException(
+                    "Return date cannot be null."
+            );
+        }
+
+        Rental rental = findRentalByVehicleId(vehicleId);
+
+        double totalCost = rentalStrategy.calculateCost(
+                rental,
+                returnDate
+        );
+
+        rental.setTotalCost(totalCost);
         rental.closeRental();
-        rental.getVehicle().setStatus(VehicleStatus.AVAILABLE);
+
+        rental.getVehicle().setStatus(
+                VehicleStatus.AVAILABLE
+        );
+
         vehicleRepository.save(rental.getVehicle());
         rentalRepository.update(rental);
+
         return rental;
     }
 }
