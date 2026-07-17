@@ -10,30 +10,19 @@ public class DomainModelTest {
 
     @Test
     public void vehicleGetters_shouldReturnVehicleData() {
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.AVAILABLE
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
 
         assertEquals("V1", vehicle.getId());
         assertEquals("Toyota", vehicle.getBrand());
         assertEquals("Corolla", vehicle.getModel());
         assertEquals(40, vehicle.getPricePerDay());
         assertEquals(VehicleStatus.AVAILABLE, vehicle.getStatus());
+        assertEquals(VehicleType.CAR, vehicle.getType());
     }
 
     @Test
     public void vehicleSetStatus_shouldChangeVehicleStatus() {
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.AVAILABLE
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
 
         vehicle.setStatus(VehicleStatus.RENTED);
 
@@ -42,26 +31,14 @@ public class DomainModelTest {
 
     @Test
     public void vehicleToString_shouldReturnFormattedVehicleText() {
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.AVAILABLE
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
 
-        assertEquals("V1 - Toyota Corolla - 40.0 per day", vehicle.toString());
+        assertEquals("V1 - CAR - Toyota Corolla - 40.0 per day", vehicle.toString());
     }
 
     @Test
     public void rentalGetters_shouldReturnRentalData() {
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.AVAILABLE
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
 
         Rental rental = new Rental(
                 "R1",
@@ -84,13 +61,7 @@ public class DomainModelTest {
 
     @Test
     public void closeRental_shouldChangeRentalStatusToClosed() {
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.AVAILABLE
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
 
         Rental rental = new Rental(
                 "R1",
@@ -106,17 +77,10 @@ public class DomainModelTest {
 
         assertEquals(RentalStatus.CLOSED, rental.getStatus());
     }
-    
+
     @Test
     public void newRental_totalCostShouldInitiallyBeZero() {
-
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.RENTED
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.RENTED);
 
         Rental rental = new Rental(
                 "R1",
@@ -133,14 +97,7 @@ public class DomainModelTest {
 
     @Test
     public void setTotalCost_shouldChangeRentalTotalCost() {
-
-        Vehicle vehicle = new Vehicle(
-                "V1",
-                "Toyota",
-                "Corolla",
-                40,
-                VehicleStatus.RENTED
-        );
+        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.RENTED);
 
         Rental rental = new Rental(
                 "R1",

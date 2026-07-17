@@ -3,11 +3,8 @@ package com.vrms.domain;
 import java.time.LocalDate;
 
 /**
- * Represents a rental record for a vehicle in the Vehicle Rental Management System.
- *
- * <p>A rental record stores the rented vehicle, customer information, rental start
- * and end dates, the current rental status, and the total cost after the vehicle
- * is returned.</p>
+ * Represents a rental record for a vehicle in the
+ * Vehicle Rental Management System.
  */
 public class Rental {
 
@@ -28,8 +25,6 @@ public class Rental {
 
     /**
      * The email address of the customer.
-     *
-     * <p>This email may be used for rental notifications or reminders.</p>
      */
     private final String customerEmail;
 
@@ -44,35 +39,68 @@ public class Rental {
     private final LocalDate endDate;
 
     /**
-     * The current status of the rental.
-     *
-     * <p>For example, the rental may be active while the vehicle is rented,
-     * and closed after the vehicle is returned.</p>
+     * The current rental status.
      */
     private RentalStatus status;
 
     /**
-     * The total cost of the rental.
-     *
-     * <p>This value is usually calculated when the vehicle is returned. It may
-     * include the normal rental cost and any late return penalty.</p>
+     * The total rental cost.
      */
     private double totalCost;
 
     /**
-     * Creates a new rental record.
+     * Creates a new rental with an initial total cost of zero.
      *
      * @param rentalId unique identifier for the rental
-     * @param vehicle the vehicle being rented
-     * @param customerName the name of the customer
-     * @param customerEmail the email address of the customer
-     * @param startDate the rental start date
-     * @param endDate the expected rental end date
-     * @param status the current rental status
+     * @param vehicle rented vehicle
+     * @param customerName customer name
+     * @param customerEmail customer email
+     * @param startDate rental start date
+     * @param endDate expected rental end date
+     * @param status rental status
      */
-    public Rental(String rentalId, Vehicle vehicle, String customerName,
-                  String customerEmail, LocalDate startDate,
-                  LocalDate endDate, RentalStatus status) {
+    public Rental(
+            String rentalId,
+            Vehicle vehicle,
+            String customerName,
+            String customerEmail,
+            LocalDate startDate,
+            LocalDate endDate,
+            RentalStatus status) {
+
+        this(
+                rentalId,
+                vehicle,
+                customerName,
+                customerEmail,
+                startDate,
+                endDate,
+                status,
+                0.0
+        );
+    }
+
+    /**
+     * Creates a rental and restores its saved total cost.
+     *
+     * @param rentalId unique identifier for the rental
+     * @param vehicle rented vehicle
+     * @param customerName customer name
+     * @param customerEmail customer email
+     * @param startDate rental start date
+     * @param endDate expected rental end date
+     * @param status rental status
+     * @param totalCost saved total rental cost
+     */
+    public Rental(
+            String rentalId,
+            Vehicle vehicle,
+            String customerName,
+            String customerEmail,
+            LocalDate startDate,
+            LocalDate endDate,
+            RentalStatus status,
+            double totalCost) {
 
         this.rentalId = rentalId;
         this.vehicle = vehicle;
@@ -81,7 +109,7 @@ public class Rental {
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = status;
-        this.totalCost = 0.0;
+        this.totalCost = totalCost;
     }
 
     /**
@@ -94,7 +122,7 @@ public class Rental {
     }
 
     /**
-     * Returns the vehicle rented by the customer.
+     * Returns the rented vehicle.
      *
      * @return the rented vehicle
      */
@@ -103,7 +131,7 @@ public class Rental {
     }
 
     /**
-     * Returns the name of the customer who rented the vehicle.
+     * Returns the customer name.
      *
      * @return the customer name
      */
@@ -112,9 +140,9 @@ public class Rental {
     }
 
     /**
-     * Returns the email address of the customer.
+     * Returns the customer email.
      *
-     * @return the customer email address
+     * @return the customer email
      */
     public String getCustomerEmail() {
         return customerEmail;
@@ -148,19 +176,7 @@ public class Rental {
     }
 
     /**
-     * Sets the total cost of the rental.
-     *
-     * <p>This method is usually called after calculating the rental cost and any
-     * late return penalty during the vehicle return process.</p>
-     *
-     * @param totalCost the calculated total rental cost
-     */
-    public void setTotalCost(double totalCost) {
-        this.totalCost = totalCost;
-    }
-
-    /**
-     * Returns the total cost of the rental.
+     * Returns the total rental cost.
      *
      * @return the total rental cost
      */
@@ -169,10 +185,16 @@ public class Rental {
     }
 
     /**
-     * Closes the rental record when the vehicle is returned.
+     * Updates the total rental cost.
      *
-     * <p>After this method is called, the rental status becomes
-     * {@link RentalStatus#CLOSED}.</p>
+     * @param totalCost the calculated rental cost
+     */
+    public void setTotalCost(double totalCost) {
+        this.totalCost = totalCost;
+    }
+
+    /**
+     * Closes the rental after the vehicle is returned.
      */
     public void closeRental() {
         this.status = RentalStatus.CLOSED;

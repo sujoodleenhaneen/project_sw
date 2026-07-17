@@ -14,8 +14,10 @@ import com.vrms.application.RentalReminderService;
 import com.vrms.application.RentalService;
 import com.vrms.application.VehicleCatalogService;
 import com.vrms.domain.Rental;
+import com.vrms.domain.RentalValidationData;
 import com.vrms.domain.StandardStrategy;
 import com.vrms.domain.Vehicle;
+import com.vrms.domain.VehicleType;
 import com.vrms.persistence.FileManagerRepository;
 import com.vrms.persistence.FileRentalRepository;
 import com.vrms.persistence.FileVehicleRepository;
@@ -61,12 +63,10 @@ public class Main {
                     case "1":
                         handleLogin(input, authService, loginController);
                         break;
-
                     case "2":
                         run = false;
                         System.out.println("Program closed");
                         break;
-
                     default:
                         System.out.println("Invalid choice. Please enter 1 or 2.");
                 }
@@ -85,28 +85,22 @@ public class Main {
                     case "1":
                         displayAvailableVehicles(vehicleController);
                         break;
-
                     case "2":
                         handleRentalCreation(input, vehicleController, rentalController, notificationService);
                         break;
-
                     case "3":
                         handleReminderCheck(rentalReminderService);
                         break;
-
                     case "4":
                         handleVehicleReturn(input, rentalController);
                         break;
-
                     case "5":
                         System.out.println(loginController.logout());
                         break;
-
                     case "6":
                         run = false;
                         System.out.println("Program closed");
                         break;
-
                     default:
                         System.out.println("Invalid choice. Please enter a number from 1 to 6.");
                 }
@@ -116,9 +110,7 @@ public class Main {
         input.close();
     }
 
-    private static void handleLogin(Scanner input, AuthService authService,
-            ManagerLoginController loginController) {
-
+    private static void handleLogin(Scanner input, AuthService authService, ManagerLoginController loginController) {
         String username;
 
         while (true) {
@@ -150,10 +142,8 @@ public class Main {
         }
     }
 
-    private static void handleRentalCreation(Scanner input,
-            VehicleCatalogController vehicleController,
-            RentalController rentalController,
-            NotificationService notificationService) {
+    private static void handleRentalCreation(Scanner input, VehicleCatalogController vehicleController,
+            RentalController rentalController, NotificationService notificationService) {
 
         List<Vehicle> availableVehicles = vehicleController.viewAvailableVehicles();
 
@@ -170,8 +160,11 @@ public class Main {
 
         String rentalId = readRequiredText(input, "Rental ID: ", "Rental ID cannot be empty.");
         String vehicleId = readAvailableVehicleId(input, availableVehicles);
+        Vehicle selectedVehicle = findVehicleById(availableVehicles, vehicleId);
+
         String customerName = readRequiredText(input, "Customer name: ", "Customer name cannot be empty.");
         String customerEmail = readValidEmail(input);
+        RentalValidationData validationData = readValidationData(input, selectedVehicle);
         LocalDate startDate = readDate(input, "Start date (YYYY-MM-DD): ");
         LocalDate endDate = readValidEndDate(input, startDate);
 
@@ -182,7 +175,8 @@ public class Main {
                     customerName,
                     customerEmail,
                     startDate,
-                    endDate
+                    endDate,
+                    validationData
             );
 
             System.out.println();
@@ -191,6 +185,7 @@ public class Main {
             System.out.println("Customer: " + rental.getCustomerName());
             System.out.println("Customer email: " + rental.getCustomerEmail());
             System.out.println("Vehicle: " + rental.getVehicle());
+            System.out.println("Vehicle type: " + rental.getVehicle().getType());
             System.out.println("Start date: " + rental.getStartDate());
             System.out.println("End date: " + rental.getEndDate());
 
@@ -205,14 +200,48 @@ public class Main {
                                 + rental.getVehicle().getModel()
                                 + " has been accepted."
                 );
-
             } catch (IllegalStateException exception) {
                 System.out.println("Rental created, but email was not sent: " + exception.getMessage());
             }
-
         } catch (IllegalArgumentException | IllegalStateException exception) {
             System.out.println("Rental failed: " + exception.getMessage());
         }
+    }
+
+    private static RentalValidationData readValidationData(Scanner input, Vehicle vehicle) {
+        int customerAge = 0;
+        boolean specialTruckLicense = false;
+        boolean batteryChecked = false;
+
+        if (vehicle.getType() == VehicleType.MOTORCYCLE) {
+            customerAge = readNonNegativeInteger(input, "Customer age: ");
+        }
+
+        if (vehicle.getType() == VehicleType.TRUCK) {
+            specialTruckLicense = readYesOrNo(
+                    input,
+                    "Does the customer have a special truck license? (yes/no): "
+            );
+        }
+
+        if (vehicle.getType() == VehicleType.ELECTRIC_VEHICLE) {
+            batteryChecked = readYesOrNo(
+                    input,
+                    "Was the vehicle battery checked? (yes/no): "
+            );
+        }
+
+        return new RentalValidationData(customerAge, specialTruckLicense, batteryChecked);
+    }
+
+    private static Vehicle findVehicleById(List<Vehicle> vehicles, String vehicleId) {
+        for (Vehicle vehicle : vehicles) {
+            if (vehicle.getId().equalsIgnoreCase(vehicleId)) {
+                return vehicle;
+            }
+        }
+
+        throw new IllegalArgumentException("Vehicle not found.");
     }
 
     private static void handleVehicleReturn(Scanner input, RentalController rentalController) {
@@ -232,7 +261,6 @@ public class Main {
             System.out.println("Vehicle: " + rental.getVehicle());
             System.out.println("Rental status: " + rental.getStatus());
             System.out.printf("Total rental cost: %.2f%n", rental.getTotalCost());
-
         } catch (IllegalArgumentException | IllegalStateException exception) {
             System.out.println("Vehicle return failed: " + exception.getMessage());
         }
@@ -242,7 +270,6 @@ public class Main {
         try {
             int remindersGenerated = reminderService.checkAllRentalsAndSendReminders(LocalDate.now());
             System.out.println("Reminders generated: " + remindersGenerated);
-
         } catch (IllegalArgumentException | IllegalStateException exception) {
             System.out.println("Reminder check failed: " + exception.getMessage());
         }
@@ -294,7 +321,6 @@ public class Main {
 
             try {
                 return LocalDate.parse(dateText);
-
             } catch (DateTimeParseException exception) {
                 System.out.println("Invalid date. Use YYYY-MM-DD, for example: 2026-07-13.");
             }
@@ -318,6 +344,41 @@ public class Main {
             }
 
             return endDate;
+        }
+    }
+
+    private static int readNonNegativeInteger(Scanner input, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String value = input.nextLine().trim();
+
+            try {
+                int number = Integer.parseInt(value);
+
+                if (number >= 0) {
+                    return number;
+                }
+            } catch (NumberFormatException exception) {
+            }
+
+            System.out.println("Please enter a valid non-negative number.");
+        }
+    }
+
+    private static boolean readYesOrNo(Scanner input, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String answer = input.nextLine().trim();
+
+            if (answer.equalsIgnoreCase("yes") || answer.equalsIgnoreCase("y")) {
+                return true;
+            }
+
+            if (answer.equalsIgnoreCase("no") || answer.equalsIgnoreCase("n")) {
+                return false;
+            }
+
+            System.out.println("Please enter yes or no.");
         }
     }
 }

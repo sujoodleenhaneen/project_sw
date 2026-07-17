@@ -78,4 +78,19 @@ public class RentalControllerTest {
                 endDate
         );
     }
+    @Test
+    public void returnVehicle_shouldReturnServiceResult() {
+        Rental expectedRental = mock(Rental.class);
+
+        when(
+                rentalService.returnVehicle("V1")
+        ).thenReturn(expectedRental);
+
+        Rental actualRental =
+                rentalController.returnVehicle("V1");
+
+        assertSame(expectedRental, actualRental);
+
+        verify(rentalService).returnVehicle("V1");
+    }
 }

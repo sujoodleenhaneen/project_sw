@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import com.vrms.domain.Rental;
 import com.vrms.domain.RentalCostStrategy;
 import com.vrms.domain.RentalStatus;
+import com.vrms.domain.StandardStrategy;
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
 import com.vrms.persistence.FileRentalRepository;
@@ -281,18 +282,53 @@ public class RentalServiceTest {
                 (currentRental, returnDate) -> 250.0
         );
 
-        Rental returnedRental = rentalService.returnVehicle("V1");
+        Rental returnedRental = rentalService.returnVehicle(
+                "V1",
+                LocalDate.of(2026, 7, 15)
+        );
 
-        assertEquals(rental.getRentalId(), returnedRental.getRentalId());
-        assertEquals(250.0, returnedRental.getTotalCost(), 0.001);
-        assertEquals(RentalStatus.CLOSED, returnedRental.getStatus());
-        assertEquals(VehicleStatus.AVAILABLE, returnedRental.getVehicle().getStatus());
+        assertEquals(
+                rental.getRentalId(),
+                returnedRental.getRentalId()
+        );
 
-        Vehicle savedVehicle = vehicleRepository.findById("V1");
-        assertEquals(VehicleStatus.AVAILABLE, savedVehicle.getStatus());
+        assertEquals(
+                250.0,
+                returnedRental.getTotalCost(),
+                0.001
+        );
 
-        Rental savedRental = rentalRepository.findById("R14");
-        assertEquals(RentalStatus.CLOSED, savedRental.getStatus());
+        assertEquals(
+                RentalStatus.CLOSED,
+                returnedRental.getStatus()
+        );
+
+        assertEquals(
+                VehicleStatus.AVAILABLE,
+                returnedRental.getVehicle().getStatus()
+        );
+
+        Vehicle savedVehicle =
+                vehicleRepository.findById("V1");
+
+        assertEquals(
+                VehicleStatus.AVAILABLE,
+                savedVehicle.getStatus()
+        );
+
+        Rental savedRental =
+                rentalRepository.findById("R14");
+
+        assertEquals(
+                RentalStatus.CLOSED,
+                savedRental.getStatus()
+        );
+
+        assertEquals(
+                250.0,
+                savedRental.getTotalCost(),
+                0.001
+        );
     }
 
     @Test
@@ -363,6 +399,47 @@ public class RentalServiceTest {
         assertEquals(
                 rental.getRentalId(),
                 receivedRental[0].getRentalId()
+        );
+    }
+    @Test
+    public void returnVehicle_whenReturnedLate_shouldUseProvidedReturnDate() {
+        rentalService.rentVehicle(
+                "R17",
+                "V1",
+                "Lina",
+                "lina@example.com",
+                LocalDate.of(2026, 7, 1),
+                LocalDate.of(2026, 7, 5)
+        );
+
+        rentalService.setRentalStrategy(
+                new StandardStrategy()
+        );
+
+        Rental returnedRental =
+                rentalService.returnVehicle(
+                        "V1",
+                        LocalDate.of(2026, 7, 7)
+                );
+
+        assertEquals(
+                200.0,
+                returnedRental.getTotalCost(),
+                0.001
+        );
+
+        Rental savedRental =
+                rentalRepository.findById("R17");
+
+        assertEquals(
+                200.0,
+                savedRental.getTotalCost(),
+                0.001
+        );
+
+        assertEquals(
+                RentalStatus.CLOSED,
+                savedRental.getStatus()
         );
     }
 }

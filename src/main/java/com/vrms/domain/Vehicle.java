@@ -8,7 +8,13 @@ public class Vehicle {
     private double pricePerDay;
     private VehicleStatus status;
 
-    public Vehicle(String id, String brand, String model, double pricePerDay, VehicleStatus status) {
+    public Vehicle(
+            String id,
+            String brand,
+            String model,
+            double pricePerDay,
+            VehicleStatus status) {
+
         this.id = id;
         this.brand = brand;
         this.model = model;
@@ -40,8 +46,27 @@ public class Vehicle {
         this.status = status;
     }
 
+    public VehicleType getType() {
+        return VehicleType.CAR;
+    }
+
+    public void validateRental(
+            RentalValidationData validationData) {
+
+        if (validationData == null) {
+            throw new IllegalArgumentException(
+                    "Rental validation data cannot be null."
+            );
+        }
+    }
+
     @Override
     public String toString() {
-        return id + " - " + brand + " " + model + " - " + pricePerDay + " per day";
+        return id
+                + " - " + getType()
+                + " - " + brand
+                + " " + model
+                + " - " + pricePerDay
+                + " per day";
     }
 }

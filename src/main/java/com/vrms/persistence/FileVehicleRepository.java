@@ -10,14 +10,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.vrms.domain.Car;
+import com.vrms.domain.ElectricVehicle;
+import com.vrms.domain.Motorcycle;
+import com.vrms.domain.Truck;
+import com.vrms.domain.Van;
 import com.vrms.domain.Vehicle;
 import com.vrms.domain.VehicleStatus;
+import com.vrms.domain.VehicleType;
 
 /**
  * Stores and retrieves vehicle information using a text file.
  *
  * <p>Each vehicle is stored on a separate line with its identifier,
- * brand, model, daily rental price, and current status.</p>
+ * type, brand, model, daily rental price, and current status.</p>
  */
 public class FileVehicleRepository implements VehicleRepository {
 
@@ -37,8 +43,15 @@ public class FileVehicleRepository implements VehicleRepository {
      * Creates a vehicle repository using the specified file path.
      *
      * @param filePath the path of the vehicles file
+     * @throws IllegalArgumentException if the file path is null
      */
     public FileVehicleRepository(Path filePath) {
+        if (filePath == null) {
+            throw new IllegalArgumentException(
+                    "File path cannot be null."
+            );
+        }
+
         this.filePath = filePath;
         createFile();
     }
@@ -47,7 +60,8 @@ public class FileVehicleRepository implements VehicleRepository {
      * Creates the vehicles file and its parent directories when they
      * do not already exist.
      *
-     * <p>If the file is empty, default vehicle records are added.</p>
+     * <p>If the file is empty, default vehicle records of different
+     * vehicle types are added.</p>
      *
      * @throws RuntimeException if the vehicles file cannot be created
      *                          or initialized
@@ -73,25 +87,29 @@ public class FileVehicleRepository implements VehicleRepository {
                 Files.write(
                         filePath,
                         Arrays.asList(
-                                "V1,Toyota,Corolla,40.0,AVAILABLE",
-                                "V2,Kia,Sportage,60.0,RENTED",
-                                "V3,Honda,Civic,45.0,AVAILABLE",
-                                "V4,Hyundai,Tucson,55.0,RENTED"
+                                "V1,CAR,Toyota,Corolla,40.0,AVAILABLE",
+                                "V2,MOTORCYCLE,Honda,CBR,35.0,AVAILABLE",
+                                "V3,VAN,Ford,Transit,70.0,AVAILABLE",
+                                "V4,TRUCK,Volvo,FH,120.0,AVAILABLE",
+                                "V5,ELECTRIC_VEHICLE,Tesla,Model3,90.0,AVAILABLE"
                         ),
                         StandardCharsets.UTF_8,
                         StandardOpenOption.TRUNCATE_EXISTING
                 );
             }
-        } catch (IOException e) {
+        } catch (IOException exception) {
             throw new RuntimeException(
                     "Could not create vehicles file.",
-                    e
+                    exception
             );
         }
     }
 
     /**
      * Returns all valid vehicles stored in the vehicles file.
+     *
+     * <p>The method supports both the old five-field format and the
+     * new six-field format that includes the vehicle type.</p>
      *
      * @return a list containing all stored vehicles
      * @throws RuntimeException if the vehicles file cannot be read
@@ -112,28 +130,142 @@ public class FileVehicleRepository implements VehicleRepository {
                 }
 
                 String[] data = line.split(",", -1);
+                Vehicle vehicle;
 
-                if (data.length != 5) {
+                /*
+                 * Old file format:
+                 * id, brand, model, price, status
+                 *
+                 * Old vehicles are treated as cars for backward compatibility.
+                 */
+                if (data.length == 5) {
+                    vehicle = createVehicle(
+                            VehicleType.CAR,
+                            data[0].trim(),
+                            data[1].trim(),
+                            data[2].trim(),
+                            Double.parseDouble(data[3].trim()),
+                            VehicleStatus.valueOf(
+                                    data[4].trim()
+                            )
+                    );
+
+                /*
+                 * New Sprint 5 file format:
+                 * id, type, brand, model, price, status
+                 */
+                } else if (data.length == 6) {
+                    vehicle = createVehicle(
+                            parseType(data[1]),
+                            data[0].trim(),
+                            data[2].trim(),
+                            data[3].trim(),
+                            Double.parseDouble(data[4].trim()),
+                            VehicleStatus.valueOf(
+                                    data[5].trim()
+                            )
+                    );
+
+                } else {
                     continue;
                 }
-
-                Vehicle vehicle = new Vehicle(
-                        data[0].trim(),
-                        data[1].trim(),
-                        data[2].trim(),
-                        Double.parseDouble(data[3].trim()),
-                        VehicleStatus.valueOf(data[4].trim())
-                );
 
                 vehicles.add(vehicle);
             }
 
             return vehicles;
-        } catch (IOException e) {
+        } catch (IOException exception) {
             throw new RuntimeException(
                     "Could not read vehicles file.",
-                    e
+                    exception
             );
+        }
+    }
+
+    /**
+     * Converts a stored vehicle type value into a {@link VehicleType}.
+     *
+     * <p>The value ELECTRIC is also accepted as an alias for
+     * ELECTRIC_VEHICLE.</p>
+     *
+     * @param value the stored vehicle type
+     * @return the corresponding vehicle type
+     */
+    private VehicleType parseType(String value) {
+        String type = value.trim().toUpperCase();
+
+        if ("ELECTRIC".equals(type)) {
+            return VehicleType.ELECTRIC_VEHICLE;
+        }
+
+        return VehicleType.valueOf(type);
+    }
+
+    /**
+     * Creates the correct vehicle subclass according to its type.
+     *
+     * @param type vehicle type
+     * @param id vehicle identifier
+     * @param brand vehicle brand
+     * @param model vehicle model
+     * @param pricePerDay daily rental price
+     * @param status current vehicle status
+     * @return a vehicle object of the appropriate subclass
+     */
+    private Vehicle createVehicle(
+            VehicleType type,
+            String id,
+            String brand,
+            String model,
+            double pricePerDay,
+            VehicleStatus status) {
+
+        switch (type) {
+            case MOTORCYCLE:
+                return new Motorcycle(
+                        id,
+                        brand,
+                        model,
+                        pricePerDay,
+                        status
+                );
+
+            case VAN:
+                return new Van(
+                        id,
+                        brand,
+                        model,
+                        pricePerDay,
+                        status
+                );
+
+            case TRUCK:
+                return new Truck(
+                        id,
+                        brand,
+                        model,
+                        pricePerDay,
+                        status
+                );
+
+            case ELECTRIC_VEHICLE:
+                return new ElectricVehicle(
+                        id,
+                        brand,
+                        model,
+                        pricePerDay,
+                        status
+                );
+
+            case CAR:
+            default:
+                return new Car(
+                        id,
+                        brand,
+                        model,
+                        pricePerDay,
+                        status
+                );
         }
     }
 
@@ -145,8 +277,12 @@ public class FileVehicleRepository implements VehicleRepository {
      */
     @Override
     public Vehicle findById(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            return null;
+        }
+
         for (Vehicle vehicle : findAll()) {
-            if (vehicle.getId().equalsIgnoreCase(id)) {
+            if (vehicle.getId().equalsIgnoreCase(id.trim())) {
                 return vehicle;
             }
         }
@@ -172,8 +308,10 @@ public class FileVehicleRepository implements VehicleRepository {
         boolean found = false;
 
         for (int i = 0; i < vehicles.size(); i++) {
-            if (vehicles.get(i).getId()
-                    .equalsIgnoreCase(vehicle.getId())) {
+            Vehicle savedVehicle = vehicles.get(i);
+
+            if (savedVehicle.getId().equalsIgnoreCase(
+                    vehicle.getId())) {
 
                 vehicles.set(i, vehicle);
                 found = true;
@@ -191,6 +329,9 @@ public class FileVehicleRepository implements VehicleRepository {
     /**
      * Rewrites the vehicles file using the provided vehicles.
      *
+     * <p>The vehicle type is stored to preserve the correct subclass when
+     * the vehicle is loaded again.</p>
+     *
      * @param vehicles the vehicles to write to the file
      * @throws RuntimeException if the vehicles cannot be written
      */
@@ -198,20 +339,22 @@ public class FileVehicleRepository implements VehicleRepository {
         List<String> lines = new ArrayList<>();
 
         for (Vehicle vehicle : vehicles) {
-            lines.add(
+            String line =
                     vehicle.getId()
+                            + "," + vehicle.getType()
                             + "," + vehicle.getBrand()
                             + "," + vehicle.getModel()
                             + "," + vehicle.getPricePerDay()
-                            + "," + vehicle.getStatus()
-            );
+                            + "," + vehicle.getStatus();
+
+            lines.add(line);
         }
 
         try {
             Files.write(filePath,lines,StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING
             );
-        } catch (IOException e) {
-            throw new RuntimeException("Could not save vehicles file.",e
+        } catch (IOException exception) {
+            throw new RuntimeException("Could not save vehicles file.",exception
             );
         }
     }

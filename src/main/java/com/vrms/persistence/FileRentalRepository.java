@@ -36,8 +36,7 @@ public class FileRentalRepository implements RentalRepository {
      * Creates a rental repository using the default rental and vehicle files.
      */
     public FileRentalRepository() {
-        this(Paths.get("data", "rentals.txt"),new FileVehicleRepository()
-        );
+        this(Paths.get("data", "rentals.txt"),new FileVehicleRepository());
     }
 
     /**
@@ -56,6 +55,7 @@ public class FileRentalRepository implements RentalRepository {
      * @param vehicleRepository repository used to retrieve vehicles
      */
     public FileRentalRepository(VehicleRepository vehicleRepository) {
+
         this(Paths.get("data", "rentals.txt"),vehicleRepository);
     }
 
@@ -65,13 +65,21 @@ public class FileRentalRepository implements RentalRepository {
      *
      * @param filePath the path of the rentals file
      * @param vehicleRepository repository used to retrieve vehicles
+     * @throws IllegalArgumentException if the file path or repository is null
      */
-    public FileRentalRepository(
-            Path filePath,
-            VehicleRepository vehicleRepository) {
+    public FileRentalRepository(Path filePath, VehicleRepository vehicleRepository) {
+
+        if (filePath == null) {
+            throw new IllegalArgumentException("File path cannot be null.");
+        }
+
+        if (vehicleRepository == null) {
+            throw new IllegalArgumentException("Vehicle repository cannot be null.");
+        }
 
         this.filePath = filePath;
         this.vehicleRepository = vehicleRepository;
+
         createFile();
     }
 
@@ -92,8 +100,8 @@ public class FileRentalRepository implements RentalRepository {
             if (!Files.exists(filePath)) {
                 Files.createFile(filePath);
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Could not create rentals file.",e
+        } catch (IOException exception) {
+            throw new RuntimeException("Could not create rentals file.",exception
             );
         }
     }
@@ -107,19 +115,16 @@ public class FileRentalRepository implements RentalRepository {
     @Override
     public void save(Rental rental) {
         if (rental == null) {
-            throw new IllegalArgumentException(
-                    "Rental cannot be null."
-            );
+            throw new IllegalArgumentException("Rental cannot be null.");
         }
 
         List<Rental> rentals = findAll();
         boolean found = false;
 
         for (int i = 0; i < rentals.size(); i++) {
-            Rental storedRental = rentals.get(i);
+            Rental savedRental = rentals.get(i);
 
-            if (storedRental.getRentalId()
-                    .equals(rental.getRentalId())) {
+            if (savedRental.getRentalId().equalsIgnoreCase(rental.getRentalId())) {
 
                 rentals.set(i, rental);
                 found = true;
@@ -145,7 +150,8 @@ public class FileRentalRepository implements RentalRepository {
         List<Rental> rentals = new ArrayList<>();
 
         try {
-            List<String> lines = Files.readAllLines(filePath,StandardCharsets.UTF_8);
+            List<String> lines = Files.readAllLines(filePath,StandardCharsets.UTF_8
+            );
 
             for (String line : lines) {
                 if (line.trim().isEmpty()) {
@@ -162,35 +168,36 @@ public class FileRentalRepository implements RentalRepository {
                     continue;
                 }
 
-                Vehicle vehicle =vehicleRepository.findById(data[3]);
+                Vehicle vehicle = vehicleRepository.findById(data[3].trim());
 
                 if (vehicle == null) {
                     continue;
                 }
 
-                Rental rental = new Rental(
-                        data[0],
-                        vehicle,
-                        data[1],
-                        data[2],
-                        LocalDate.parse(data[4]),
-                        LocalDate.parse(data[5]),
-                        RentalStatus.valueOf(data[6])
-                );
+                double totalCost = 0.0;
 
-                if (data.length == 8
-                        && !data[7].trim().isEmpty()) {
+                if (data.length == 8 && !data[7].trim().isEmpty()) {
 
-                    rental.setTotalCost(Double.parseDouble(data[7])
-                    );
+                    totalCost = Double.parseDouble( data[7].trim());
                 }
+
+                Rental rental = new Rental(
+                        data[0].trim(),
+                        vehicle,
+                        data[1].trim(),
+                        data[2].trim(),
+                        LocalDate.parse(data[4].trim()),
+                        LocalDate.parse(data[5].trim()),
+                        RentalStatus.valueOf(data[6].trim()),
+                        totalCost
+                );
 
                 rentals.add(rental);
             }
 
             return rentals;
-        } catch (IOException e) {
-            throw new RuntimeException("Could not read rentals file.",e
+        } catch (IOException exception) {
+            throw new RuntimeException("Could not read rentals file.",exception
             );
         }
     }
@@ -208,7 +215,8 @@ public class FileRentalRepository implements RentalRepository {
         }
 
         for (Rental rental : findAll()) {
-            if (rental.getRentalId().equals(rentalId)) {
+            if (rental.getRentalId().equalsIgnoreCase(rentalId)) {
+
                 return rental;
             }
         }
@@ -236,23 +244,24 @@ public class FileRentalRepository implements RentalRepository {
         List<String> lines = new ArrayList<>();
 
         for (Rental rental : rentals) {
-            String line = rental.getRentalId()
-                    + "," + rental.getCustomerName()
-                    + "," + rental.getCustomerEmail()
-                    + "," + rental.getVehicle().getId()
-                    + "," + rental.getStartDate()
-                    + "," + rental.getEndDate()
-                    + "," + rental.getStatus()
-                    + "," + rental.getTotalCost();
+            String line =
+                    rental.getRentalId()
+                            + "," + rental.getCustomerName()
+                            + "," + rental.getCustomerEmail()
+                            + "," + rental.getVehicle().getId()
+                            + "," + rental.getStartDate()
+                            + "," + rental.getEndDate()
+                            + "," + rental.getStatus()
+                            + "," + rental.getTotalCost();
 
             lines.add(line);
         }
 
         try {
-            Files.write(filePath,lines,StandardCharsets.UTF_8,StandardOpenOption.TRUNCATE_EXISTING
+            Files.write(filePath,lines,StandardCharsets.UTF_8, StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING
             );
-        } catch (IOException e) {
-            throw new RuntimeException("Could not save rentals file.",e
+        } catch (IOException exception) {
+            throw new RuntimeException("Could not save rentals file.", exception
             );
         }
     }
