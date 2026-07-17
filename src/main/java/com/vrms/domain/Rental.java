@@ -14,34 +14,34 @@ public class Rental {
     /**
      * Unique identifier for the rental record.
      */
-    private String rentalId;
+    private final String rentalId;
 
     /**
      * The vehicle rented by the customer.
      */
-    private Vehicle vehicle;
+    private final Vehicle vehicle;
 
     /**
      * The name of the customer who rented the vehicle.
      */
-    private String customerName;
+    private final String customerName;
 
     /**
      * The email address of the customer.
      *
      * <p>This email may be used for rental notifications or reminders.</p>
      */
-    private String customerEmail;
+    private final String customerEmail;
 
     /**
      * The start date of the rental period.
      */
-    private LocalDate startDate;
+    private final LocalDate startDate;
 
     /**
      * The expected end date of the rental period.
      */
-    private LocalDate endDate;
+    private final LocalDate endDate;
 
     /**
      * The current status of the rental.
@@ -81,7 +81,7 @@ public class Rental {
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = status;
-        this.totalCost = 0;
+        this.totalCost = 0.0;
     }
 
     /**

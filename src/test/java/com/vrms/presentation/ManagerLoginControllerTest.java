@@ -3,7 +3,7 @@ package com.vrms.presentation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -104,5 +104,10 @@ public class ManagerLoginControllerTest {
         controller.login("admin", "1234");
 
         assertTrue(controller.isLoggedIn());
+    }
+    
+    @Test
+    public void constructorFailsWhenAuthServiceIsNull() {
+        assertThrows(NullPointerException.class,() -> new ManagerLoginController(null));
     }
 }
