@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import com.vrms.domain.Car;
 import com.vrms.domain.ElectricVehicle;
@@ -94,6 +95,7 @@ public class FileVehicleRepository implements VehicleRepository {
                                 "V5,ELECTRIC_VEHICLE,Tesla,Model3,90.0,AVAILABLE"
                         ),
                         StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING
                 );
             }
@@ -131,13 +133,6 @@ public class FileVehicleRepository implements VehicleRepository {
 
                 String[] data = line.split(",", -1);
                 Vehicle vehicle;
-
-                /*
-                 * Old file format:
-                 * id, brand, model, price, status
-                 *
-                 * Old vehicles are treated as cars for backward compatibility.
-                 */
                 if (data.length == 5) {
                     vehicle = createVehicle(
                             VehicleType.CAR,
@@ -150,10 +145,6 @@ public class FileVehicleRepository implements VehicleRepository {
                             )
                     );
 
-                /*
-                 * New Sprint 5 file format:
-                 * id, type, brand, model, price, status
-                 */
                 } else if (data.length == 6) {
                     vehicle = createVehicle(
                             parseType(data[1]),
@@ -192,7 +183,9 @@ public class FileVehicleRepository implements VehicleRepository {
      * @return the corresponding vehicle type
      */
     private VehicleType parseType(String value) {
-        String type = value.trim().toUpperCase();
+        String type = value
+                .trim()
+                .toUpperCase(Locale.ROOT);
 
         if ("ELECTRIC".equals(type)) {
             return VehicleType.ELECTRIC_VEHICLE;
@@ -281,8 +274,12 @@ public class FileVehicleRepository implements VehicleRepository {
             return null;
         }
 
+        String searchedId = id.trim();
+
         for (Vehicle vehicle : findAll()) {
-            if (vehicle.getId().equalsIgnoreCase(id.trim())) {
+            if (vehicle.getId()
+                    .equalsIgnoreCase(searchedId)) {
+
                 return vehicle;
             }
         }
@@ -295,6 +292,7 @@ public class FileVehicleRepository implements VehicleRepository {
      *
      * @param vehicle the vehicle to save
      * @throws IllegalArgumentException if the vehicle is null
+     *                                  or its ID is empty
      */
     @Override
     public void save(Vehicle vehicle) {
@@ -304,14 +302,24 @@ public class FileVehicleRepository implements VehicleRepository {
             );
         }
 
+        String vehicleId = vehicle.getId();
+
+        if (vehicleId == null || vehicleId.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Vehicle ID cannot be empty."
+            );
+        }
+
+        String searchedId = vehicleId.trim();
+
         List<Vehicle> vehicles = findAll();
         boolean found = false;
 
         for (int i = 0; i < vehicles.size(); i++) {
             Vehicle savedVehicle = vehicles.get(i);
 
-            if (savedVehicle.getId().equalsIgnoreCase(
-                    vehicle.getId())) {
+            if (savedVehicle.getId()
+                    .equalsIgnoreCase(searchedId)) {
 
                 vehicles.set(i, vehicle);
                 found = true;
@@ -351,10 +359,17 @@ public class FileVehicleRepository implements VehicleRepository {
         }
 
         try {
-            Files.write(filePath,lines,StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING
+            Files.write(
+                    filePath,
+                    lines,
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING
             );
         } catch (IOException exception) {
-            throw new RuntimeException("Could not save vehicles file.",exception
+            throw new RuntimeException(
+                    "Could not save vehicles file.",
+                    exception
             );
         }
     }

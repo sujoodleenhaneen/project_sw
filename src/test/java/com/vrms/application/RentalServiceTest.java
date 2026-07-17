@@ -3,6 +3,9 @@ package com.vrms.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -27,20 +30,31 @@ public class RentalServiceTest {
 
     private FileVehicleRepository vehicleRepository;
     private FileRentalRepository rentalRepository;
+    private DateProvider dateProvider;
     private RentalService rentalService;
 
     @BeforeEach
     public void setUp() {
-        vehicleRepository = new FileVehicleRepository(tempDir.resolve("vehicles.txt"));
+        vehicleRepository =
+                new FileVehicleRepository(
+                        tempDir.resolve("vehicles.txt")
+                );
 
-        rentalRepository = new FileRentalRepository(
-                tempDir.resolve("rentals.txt"),
-                vehicleRepository
-        );
+        rentalRepository =
+                new FileRentalRepository(
+                        tempDir.resolve("rentals.txt"),
+                        vehicleRepository
+                );
+
+        dateProvider = mock(DateProvider.class);
+
+        when(dateProvider.getCurrentDate())
+                .thenReturn(LocalDate.of(2026, 7, 15));
 
         rentalService = new RentalService(
                 vehicleRepository,
-                rentalRepository
+                rentalRepository,
+                dateProvider
         );
     }
 
@@ -57,18 +71,37 @@ public class RentalServiceTest {
 
         assertEquals("R1", rental.getRentalId());
         assertEquals("Ahmad", rental.getCustomerName());
-        assertEquals("ahmad@example.com", rental.getCustomerEmail());
-        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
-        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
-        assertEquals(1, rentalRepository.findAll().size());
+        assertEquals(
+                "ahmad@example.com",
+                rental.getCustomerEmail()
+        );
+        assertEquals(
+                RentalStatus.ACTIVE,
+                rental.getStatus()
+        );
+        assertEquals(
+                VehicleStatus.RENTED,
+                rental.getVehicle().getStatus()
+        );
+        assertEquals(
+                1,
+                rentalRepository.findAll().size()
+        );
 
-        Vehicle savedVehicle = vehicleRepository.findById("V1");
-        assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
+        Vehicle savedVehicle =
+                vehicleRepository.findById("V1");
+
+        assertEquals(
+                VehicleStatus.RENTED,
+                savedVehicle.getStatus()
+        );
     }
 
     @Test
     public void rentVehicle_whenVehicleStatusIsRented_shouldThrowException() {
-        Vehicle vehicle = vehicleRepository.findById("V1");
+        Vehicle vehicle =
+                vehicleRepository.findById("V1");
+
         vehicle.setStatus(VehicleStatus.RENTED);
         vehicleRepository.save(vehicle);
 
@@ -186,17 +219,32 @@ public class RentalServiceTest {
                 LocalDate.of(2026, 7, 31)
         );
 
-        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
-        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
-        assertEquals(1, rentalRepository.findAll().size());
+        assertEquals(
+                RentalStatus.ACTIVE,
+                rental.getStatus()
+        );
+        assertEquals(
+                VehicleStatus.RENTED,
+                rental.getVehicle().getStatus()
+        );
+        assertEquals(
+                1,
+                rentalRepository.findAll().size()
+        );
 
-        Vehicle savedVehicle = vehicleRepository.findById("V1");
-        assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
+        Vehicle savedVehicle =
+                vehicleRepository.findById("V1");
+
+        assertEquals(
+                VehicleStatus.RENTED,
+                savedVehicle.getStatus()
+        );
     }
 
     @Test
     public void rentVehicle_whenVehicleHasActiveRental_shouldThrowException() {
-        Vehicle vehicle = vehicleRepository.findById("V1");
+        Vehicle vehicle =
+                vehicleRepository.findById("V1");
 
         Rental existingRental = new Rental(
                 "R10",
@@ -225,7 +273,8 @@ public class RentalServiceTest {
 
     @Test
     public void rentVehicle_whenPreviousRentalIsClosed_shouldCreateNewRental() {
-        Vehicle vehicle = vehicleRepository.findById("V1");
+        Vehicle vehicle =
+                vehicleRepository.findById("V1");
 
         Rental closedRental = new Rental(
                 "R12",
@@ -239,7 +288,9 @@ public class RentalServiceTest {
 
         rentalRepository.save(closedRental);
 
-        vehicle.setStatus(VehicleStatus.AVAILABLE);
+        vehicle.setStatus(
+                VehicleStatus.AVAILABLE
+        );
         vehicleRepository.save(vehicle);
 
         Rental newRental = rentalService.rentVehicle(
@@ -251,20 +302,35 @@ public class RentalServiceTest {
                 LocalDate.of(2026, 7, 15)
         );
 
-        assertEquals(RentalStatus.ACTIVE, newRental.getStatus());
-        assertEquals(2, rentalRepository.findAll().size());
+        assertEquals(
+                RentalStatus.ACTIVE,
+                newRental.getStatus()
+        );
+        assertEquals(
+                2,
+                rentalRepository.findAll().size()
+        );
 
-        Vehicle savedVehicle = vehicleRepository.findById("V1");
-        assertEquals(VehicleStatus.RENTED, savedVehicle.getStatus());
+        Vehicle savedVehicle =
+                vehicleRepository.findById("V1");
+
+        assertEquals(
+                VehicleStatus.RENTED,
+                savedVehicle.getStatus()
+        );
     }
 
     @Test
     public void setRentalStrategy_shouldStoreRentalStrategy() {
-        RentalCostStrategy strategy = (rental, returnDate) -> 100.0;
+        RentalCostStrategy strategy =
+                (rental, returnDate) -> 100.0;
 
         rentalService.setRentalStrategy(strategy);
 
-        assertSame(strategy, rentalService.getRentalStrategy());
+        assertSame(
+                strategy,
+                rentalService.getRentalStrategy()
+        );
     }
 
     @Test
@@ -282,10 +348,11 @@ public class RentalServiceTest {
                 (currentRental, returnDate) -> 250.0
         );
 
-        Rental returnedRental = rentalService.returnVehicle(
-                "V1",
-                LocalDate.of(2026, 7, 15)
-        );
+        Rental returnedRental =
+                rentalService.returnVehicle(
+                        "V1",
+                        LocalDate.of(2026, 7, 15)
+                );
 
         assertEquals(
                 rental.getRentalId(),
@@ -342,19 +409,31 @@ public class RentalServiceTest {
                 LocalDate.of(2026, 7, 15)
         );
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> rentalService.returnVehicle("V1")
-        );
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> rentalService
+                                .returnVehicle("V1")
+                );
 
         assertEquals(
                 "No rental cost strategy is set.",
                 exception.getMessage()
         );
 
-        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
-        assertEquals(VehicleStatus.RENTED, rental.getVehicle().getStatus());
-        assertEquals(0.0, rental.getTotalCost(), 0.001);
+        assertEquals(
+                RentalStatus.ACTIVE,
+                rental.getStatus()
+        );
+        assertEquals(
+                VehicleStatus.RENTED,
+                rental.getVehicle().getStatus()
+        );
+        assertEquals(
+                0.0,
+                rental.getTotalCost(),
+                0.001
+        );
     }
 
     @Test
@@ -363,10 +442,12 @@ public class RentalServiceTest {
                 (rental, returnDate) -> 100.0
         );
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> rentalService.returnVehicle("V1")
-        );
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> rentalService
+                                .returnVehicle("V1")
+                );
 
         assertEquals(
                 "Rental for vehicle not found.",
@@ -385,11 +466,14 @@ public class RentalServiceTest {
                 LocalDate.of(2026, 7, 15)
         );
 
-        Rental[] receivedRental = new Rental[1];
+        Rental[] receivedRental =
+                new Rental[1];
 
         rentalService.setRentalStrategy(
                 (currentRental, returnDate) -> {
-                    receivedRental[0] = currentRental;
+                    receivedRental[0] =
+                            currentRental;
+
                     return 180.0;
                 }
         );
@@ -401,6 +485,7 @@ public class RentalServiceTest {
                 receivedRental[0].getRentalId()
         );
     }
+
     @Test
     public void returnVehicle_whenReturnedLate_shouldUseProvidedReturnDate() {
         rentalService.rentVehicle(
@@ -441,5 +526,117 @@ public class RentalServiceTest {
                 RentalStatus.CLOSED,
                 savedRental.getStatus()
         );
+    }
+
+    @Test
+    public void rentVehicle_whenRentalIdAlreadyExists_shouldThrowException() {
+        rentalService.rentVehicle(
+                "R18",
+                "V1",
+                "Ahmad",
+                "ahmad@example.com",
+                LocalDate.of(2026, 7, 1),
+                LocalDate.of(2026, 7, 5)
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> rentalService.rentVehicle(
+                                "R18",
+                                "V3",
+                                "Sara",
+                                "sara@example.com",
+                                LocalDate.of(2026, 7, 10),
+                                LocalDate.of(2026, 7, 15)
+                        )
+                );
+
+        assertEquals(
+                "Rental ID already exists.",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    public void returnVehicle_whenReturnDateIsBeforeStartDate_shouldThrowException() {
+        Rental rental = rentalService.rentVehicle(
+                "R19",
+                "V1",
+                "Lina",
+                "lina@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15)
+        );
+
+        rentalService.setRentalStrategy(
+                new StandardStrategy()
+        );
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> rentalService.returnVehicle(
+                                "V1",
+                                LocalDate.of(2026, 7, 9)
+                        )
+                );
+
+        assertEquals(
+                "Return date cannot be before the rental start date.",
+                exception.getMessage()
+        );
+
+        assertEquals(
+                RentalStatus.ACTIVE,
+                rental.getStatus()
+        );
+
+        assertEquals(
+                VehicleStatus.RENTED,
+                rental.getVehicle().getStatus()
+        );
+    }
+
+    @Test
+    public void returnVehicle_withoutProvidedDate_shouldUseDateProvider() {
+        rentalService.rentVehicle(
+                "R20",
+                "V1",
+                "Ahmad",
+                "ahmad@example.com",
+                LocalDate.of(2026, 7, 1),
+                LocalDate.of(2026, 7, 5)
+        );
+
+        rentalService.setRentalStrategy(
+                new StandardStrategy()
+        );
+
+        when(dateProvider.getCurrentDate())
+                .thenReturn(
+                        LocalDate.of(2026, 7, 7)
+                );
+
+        Rental returnedRental =
+                rentalService.returnVehicle("V1");
+
+        assertEquals(
+                200.0,
+                returnedRental.getTotalCost(),
+                0.001
+        );
+
+        assertEquals(
+                RentalStatus.CLOSED,
+                returnedRental.getStatus()
+        );
+
+        assertEquals(
+                VehicleStatus.AVAILABLE,
+                returnedRental.getVehicle().getStatus()
+        );
+
+        verify(dateProvider).getCurrentDate();
     }
 }

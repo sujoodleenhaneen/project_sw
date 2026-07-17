@@ -21,7 +21,10 @@ public class ManagerLoginController {
      * @throws NullPointerException if authService is null
      */
     public ManagerLoginController(AuthService authService) {
-        this.authService = Objects.requireNonNull( authService,"Authentication service cannot be null.");
+        this.authService = Objects.requireNonNull(
+                authService,
+                "Authentication service cannot be null."
+        );
     }
 
     /**

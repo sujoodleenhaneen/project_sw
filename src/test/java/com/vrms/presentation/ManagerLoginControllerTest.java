@@ -2,21 +2,43 @@ package com.vrms.presentation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.vrms.application.AuthService;
 import com.vrms.persistence.FileManagerRepository;
 
 public class ManagerLoginControllerTest {
 
+    @TempDir
+    Path tempDir;
+
     private ManagerLoginController controller;
 
     @BeforeEach
-    public void setUp() {
-        AuthService authService = new AuthService(new FileManagerRepository());
+    public void setUp() throws IOException {
+        Path managersFile = tempDir.resolve("managers.txt");
+
+        Files.write(
+                managersFile,
+                Arrays.asList("admin,1234"),
+                StandardCharsets.UTF_8
+        );
+
+        AuthService authService = new AuthService(
+                new FileManagerRepository(managersFile)
+        );
+
         controller = new ManagerLoginController(authService);
     }
 
@@ -105,9 +127,12 @@ public class ManagerLoginControllerTest {
 
         assertTrue(controller.isLoggedIn());
     }
-    
+
     @Test
     public void constructorFailsWhenAuthServiceIsNull() {
-        assertThrows(NullPointerException.class,() -> new ManagerLoginController(null));
+        assertThrows(
+                NullPointerException.class,
+                () -> new ManagerLoginController(null)
+        );
     }
 }

@@ -7,7 +7,9 @@ import com.vrms.persistence.ManagerRepository;
 
 /**
  * Provides authentication operations for system managers.
- * It supports login, logout, and checking the current login status.
+ *
+ * <p>The service supports login, logout, username lookup,
+ * and checking the current authentication status.</p>
  */
 public class AuthService {
 
@@ -18,7 +20,8 @@ public class AuthService {
 
     /**
      * The manager who is currently logged in.
-     * It is null when no manager is authenticated.
+     *
+     * <p>The value is null when no manager is authenticated.</p>
      */
     private Manager currentManager;
 
@@ -26,12 +29,13 @@ public class AuthService {
      * Creates an authentication service.
      *
      * @param managerRepository repository used to access manager data
-     * @throws NullPointerException if managerRepository is null
+     * @throws NullPointerException if the manager repository is null
      */
     public AuthService(ManagerRepository managerRepository) {
-        this.managerRepository =
-                Objects.requireNonNull(managerRepository,
-                        "Manager repository cannot be null.");
+        this.managerRepository = Objects.requireNonNull(
+                managerRepository,
+                "Manager repository cannot be null."
+        );
     }
 
     /**
@@ -41,7 +45,13 @@ public class AuthService {
      * @return true if the username exists, otherwise false
      */
     public boolean usernameExists(String username) {
-        return managerRepository.findByUsername(username) != null;
+        if (username == null || username.trim().isEmpty()) {
+            return false;
+        }
+
+        return managerRepository.findByUsername(
+                username.trim()
+        ) != null;
     }
 
     /**
@@ -52,13 +62,26 @@ public class AuthService {
      * @return true if the credentials are valid, otherwise false
      */
     public boolean login(String username, String password) {
-        Manager manager = managerRepository.findByUsername(username);
+        if (username == null || username.trim().isEmpty()) {
+            return false;
+        }
+
+        if (password == null || password.isEmpty()) {
+            return false;
+        }
+
+        Manager manager = managerRepository.findByUsername(
+                username.trim()
+        );
 
         if (manager == null) {
             return false;
         }
 
-        if (!manager.getPassword().equals(password)) {
+        if (!Objects.equals(
+                manager.getPassword(),
+                password)) {
+
             return false;
         }
 

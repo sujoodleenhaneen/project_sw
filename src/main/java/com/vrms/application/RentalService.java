@@ -39,19 +39,72 @@ public class RentalService {
     private final RentalRepository rentalRepository;
 
     /**
+     * Provider used to obtain the current date.
+     */
+    private final DateProvider dateProvider;
+
+    /**
      * Strategy used to calculate the rental cost when a vehicle is returned.
      */
     private RentalCostStrategy rentalStrategy;
 
     /**
-     * Creates a rental service using the provided repositories.
+     * Creates a rental service using the provided repositories
+     * and the real system date.
      *
      * @param vehicleRepository repository containing vehicle records
      * @param rentalRepository repository containing rental records
+     * @throws IllegalArgumentException if either repository is null
      */
-    public RentalService(VehicleRepository vehicleRepository, RentalRepository rentalRepository) {
+    public RentalService(
+            VehicleRepository vehicleRepository,
+            RentalRepository rentalRepository) {
+
+        this(
+                vehicleRepository,
+                rentalRepository,
+                new SystemDateProvider()
+        );
+    }
+
+    /**
+     * Creates a rental service using the provided repositories
+     * and date provider.
+     *
+     * <p>The date provider can be mocked during testing so that
+     * date-dependent behavior does not depend on the real system date.</p>
+     *
+     * @param vehicleRepository repository containing vehicle records
+     * @param rentalRepository repository containing rental records
+     * @param dateProvider provider used to obtain the current date
+     * @throws IllegalArgumentException if any dependency is null
+     */
+    public RentalService(
+            VehicleRepository vehicleRepository,
+            RentalRepository rentalRepository,
+            DateProvider dateProvider) {
+
+        if (vehicleRepository == null) {
+            throw new IllegalArgumentException(
+                    "Vehicle repository cannot be null."
+            );
+        }
+
+        if (rentalRepository == null) {
+            throw new IllegalArgumentException(
+                    "Rental repository cannot be null."
+            );
+        }
+
+        if (dateProvider == null) {
+            throw new IllegalArgumentException(
+                    "Date provider cannot be null."
+            );
+        }
+
         this.vehicleRepository = vehicleRepository;
         this.rentalRepository = rentalRepository;
+        this.dateProvider = dateProvider;
         this.rentalStrategy = null;
     }
 
@@ -60,7 +113,9 @@ public class RentalService {
      *
      * @param rentalStrategy strategy used for rental cost calculation
      */
-    public void setRentalStrategy(RentalCostStrategy rentalStrategy) {
+    public void setRentalStrategy(
+            RentalCostStrategy rentalStrategy) {
+
         this.rentalStrategy = rentalStrategy;
     }
 
@@ -76,9 +131,8 @@ public class RentalService {
     /**
      * Creates a rental using default validation information.
      *
-     * <p>This method is kept to support previous functionality and tests.
-     * Car and van rentals can use this method because they do not require
-     * additional type-specific validation.</p>
+     * <p>Car and van rentals may use this method because they do not
+     * require additional type-specific information.</p>
      *
      * @param rentalId unique rental identifier
      * @param vehicleId identifier of the selected vehicle
@@ -88,54 +142,100 @@ public class RentalService {
      * @param endDate rental end date
      * @return newly created rental
      */
-    public Rental rentVehicle(String rentalId, String vehicleId, String customerName, String customerEmail,
-            LocalDate startDate, LocalDate endDate) {
+    public Rental rentVehicle(
+            String rentalId,
+            String vehicleId,
+            String customerName,
+            String customerEmail,
+            LocalDate startDate,
+            LocalDate endDate) {
 
-        RentalValidationData validationData = new RentalValidationData(0, false, false);
+        RentalValidationData validationData =
+                new RentalValidationData(
+                        0,
+                        false,
+                        false
+                );
 
-        return rentVehicle(rentalId, vehicleId, customerName, customerEmail,
-                startDate, endDate, validationData);
+        return rentVehicle(
+                rentalId,
+                vehicleId,
+                customerName,
+                customerEmail,
+                startDate,
+                endDate,
+                validationData
+        );
     }
 
     /**
      * Creates a rental after applying the selected vehicle type rules.
      *
-     * <p>Motorcycles validate the customer age, trucks validate the
-     * special license, and electric vehicles validate the battery check.</p>
-     *
      * @param rentalId unique rental identifier
      * @param vehicleId identifier of the selected vehicle
      * @param customerName customer name
      * @param customerEmail customer email address
      * @param startDate rental start date
      * @param endDate rental end date
-     * @param validationData information required for vehicle-specific validation
+     * @param validationData vehicle-specific validation information
      * @return newly created rental
-     * @throws IllegalArgumentException if the vehicle, dates, or validation information are invalid
-     * @throws IllegalStateException if the vehicle is unavailable or already rented
+     * @throws IllegalArgumentException if the rental information is invalid
+     * @throws IllegalStateException if the vehicle is unavailable
      */
-    public Rental rentVehicle(String rentalId, String vehicleId, String customerName, String customerEmail,
-            LocalDate startDate, LocalDate endDate, RentalValidationData validationData) {
+    public Rental rentVehicle(
+            String rentalId,
+            String vehicleId,
+            String customerName,
+            String customerEmail,
+            LocalDate startDate,
+            LocalDate endDate,
+            RentalValidationData validationData) {
 
-        validateRentalPeriod(startDate, endDate);
+        validateRentalInformation(
+                rentalId,
+                vehicleId,
+                customerName,
+                customerEmail,
+                validationData
+        );
 
-        Vehicle vehicle = findVehicleById(vehicleId);
+        validateRentalPeriod(
+                startDate,
+                endDate
+        );
+
+        String cleanedRentalId = rentalId.trim();
+        String cleanedVehicleId = vehicleId.trim();
+
+        if (rentalRepository.findById(cleanedRentalId) != null) {
+            throw new IllegalArgumentException(
+                    "Rental ID already exists."
+            );
+        }
+
+        Vehicle vehicle = findVehicleById(
+                cleanedVehicleId
+        );
 
         vehicle.validateRental(validationData);
 
         if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
-            throw new IllegalStateException("Vehicle is not available for rental.");
+            throw new IllegalStateException(
+                    "Vehicle is not available for rental."
+            );
         }
 
-        if (hasActiveRental(vehicleId)) {
-            throw new IllegalStateException("Vehicle is already rented.");
+        if (hasActiveRental(cleanedVehicleId)) {
+            throw new IllegalStateException(
+                    "Vehicle is already rented."
+            );
         }
 
         Rental rental = new Rental(
-                rentalId,
+                cleanedRentalId,
                 vehicle,
-                customerName,
-                customerEmail,
+                customerName.trim(),
+                customerEmail.trim(),
                 startDate,
                 endDate,
                 RentalStatus.ACTIVE
@@ -150,46 +250,77 @@ public class RentalService {
     }
 
     /**
-     * Returns a rented vehicle using the current date.
+     * Returns a rented vehicle using the current date
+     * supplied by the date provider.
      *
      * @param vehicleId identifier of the returned vehicle
      * @return closed rental record
      */
     public Rental returnVehicle(String vehicleId) {
-        return returnVehicle(vehicleId, LocalDate.now());
+        return returnVehicle(
+                vehicleId,
+                dateProvider.getCurrentDate()
+        );
     }
 
     /**
      * Returns a rented vehicle using the supplied return date.
      *
-     * <p>The method calculates the total rental cost, closes the rental,
-     * changes the vehicle status to available, and saves the changes
-     * in the file repositories.</p>
-     *
      * @param vehicleId identifier of the returned vehicle
      * @param returnDate actual vehicle return date
      * @return closed and updated rental record
-     * @throws IllegalArgumentException if no pricing strategy is set,
-     *         the return date is null, or the rental is not found
+     * @throws IllegalArgumentException if the input is invalid
      */
-    public Rental returnVehicle(String vehicleId, LocalDate returnDate) {
+    public Rental returnVehicle(
+            String vehicleId,
+            LocalDate returnDate) {
+
         if (rentalStrategy == null) {
-            throw new IllegalArgumentException("No rental cost strategy is set.");
+            throw new IllegalArgumentException(
+                    "No rental cost strategy is set."
+            );
+        }
+
+        if (vehicleId == null
+                || vehicleId.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Vehicle ID cannot be empty."
+            );
         }
 
         if (returnDate == null) {
-            throw new IllegalArgumentException("Return date cannot be null.");
+            throw new IllegalArgumentException(
+                    "Return date cannot be null."
+            );
         }
 
-        Rental rental = findRentalByVehicleId(vehicleId);
+        Rental rental = findRentalByVehicleId(
+                vehicleId.trim()
+        );
 
-        double totalCost = rentalStrategy.calculateCost(rental, returnDate);
+        if (returnDate.isBefore(rental.getStartDate())) {
+            throw new IllegalArgumentException(
+                    "Return date cannot be before the rental start date."
+            );
+        }
+
+        double totalCost = rentalStrategy.calculateCost(
+                rental,
+                returnDate
+        );
 
         rental.setTotalCost(totalCost);
         rental.closeRental();
-        rental.getVehicle().setStatus(VehicleStatus.AVAILABLE);
 
-        vehicleRepository.save(rental.getVehicle());
+        rental.getVehicle().setStatus(
+                VehicleStatus.AVAILABLE
+        );
+
+        vehicleRepository.save(
+                rental.getVehicle()
+        );
+
         rentalRepository.update(rental);
 
         return rental;
@@ -203,15 +334,20 @@ public class RentalService {
      * @throws IllegalArgumentException if the vehicle does not exist
      */
     private Vehicle findVehicleById(String vehicleId) {
-        List<Vehicle> vehicles = vehicleRepository.findAll();
+        List<Vehicle> vehicles =
+                vehicleRepository.findAll();
 
         for (Vehicle vehicle : vehicles) {
-            if (vehicle.getId().equalsIgnoreCase(vehicleId)) {
+            if (vehicle.getId()
+                    .equalsIgnoreCase(vehicleId)) {
+
                 return vehicle;
             }
         }
 
-        throw new IllegalArgumentException("Vehicle not found.");
+        throw new IllegalArgumentException(
+                "Vehicle not found."
+        );
     }
 
     /**
@@ -221,11 +357,18 @@ public class RentalService {
      * @return true if an active rental exists; otherwise false
      */
     private boolean hasActiveRental(String vehicleId) {
-        List<Rental> rentals = rentalRepository.findAll();
+        List<Rental> rentals =
+                rentalRepository.findAll();
 
         for (Rental rental : rentals) {
-            boolean sameVehicle = rental.getVehicle().getId().equalsIgnoreCase(vehicleId);
-            boolean activeRental = rental.getStatus() == RentalStatus.ACTIVE;
+            boolean sameVehicle =
+                    rental.getVehicle()
+                            .getId()
+                            .equalsIgnoreCase(vehicleId);
+
+            boolean activeRental =
+                    rental.getStatus()
+                            == RentalStatus.ACTIVE;
 
             if (sameVehicle && activeRental) {
                 return true;
@@ -242,19 +385,85 @@ public class RentalService {
      * @return active rental associated with the vehicle
      * @throws IllegalArgumentException if no active rental exists
      */
-    private Rental findRentalByVehicleId(String vehicleId) {
-        List<Rental> rentals = rentalRepository.findAll();
+    private Rental findRentalByVehicleId(
+            String vehicleId) {
+
+        List<Rental> rentals =
+                rentalRepository.findAll();
 
         for (Rental rental : rentals) {
-            boolean sameVehicle = rental.getVehicle().getId().equalsIgnoreCase(vehicleId);
-            boolean activeRental = rental.getStatus() == RentalStatus.ACTIVE;
+            boolean sameVehicle =
+                    rental.getVehicle()
+                            .getId()
+                            .equalsIgnoreCase(vehicleId);
+
+            boolean activeRental =
+                    rental.getStatus()
+                            == RentalStatus.ACTIVE;
 
             if (sameVehicle && activeRental) {
                 return rental;
             }
         }
 
-        throw new IllegalArgumentException("Rental for vehicle not found.");
+        throw new IllegalArgumentException(
+                "Rental for vehicle not found."
+        );
+    }
+
+    /**
+     * Validates the required rental information.
+     *
+     * @param rentalId rental identifier
+     * @param vehicleId vehicle identifier
+     * @param customerName customer name
+     * @param customerEmail customer email
+     * @param validationData vehicle-specific validation information
+     */
+    private void validateRentalInformation(
+            String rentalId,
+            String vehicleId,
+            String customerName,
+            String customerEmail,
+            RentalValidationData validationData) {
+
+        if (rentalId == null
+                || rentalId.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Rental ID cannot be empty."
+            );
+        }
+
+        if (vehicleId == null
+                || vehicleId.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Vehicle ID cannot be empty."
+            );
+        }
+
+        if (customerName == null
+                || customerName.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Customer name cannot be empty."
+            );
+        }
+
+        if (customerEmail == null
+                || customerEmail.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Customer email cannot be empty."
+            );
+        }
+
+        if (validationData == null) {
+            throw new IllegalArgumentException(
+                    "Rental validation data cannot be null."
+            );
+        }
     }
 
     /**
@@ -262,21 +471,34 @@ public class RentalService {
      *
      * @param startDate rental start date
      * @param endDate rental end date
-     * @throws IllegalArgumentException if the dates are invalid or exceed the limit
      */
-    private void validateRentalPeriod(LocalDate startDate, LocalDate endDate) {
+    private void validateRentalPeriod(
+            LocalDate startDate,
+            LocalDate endDate) {
+
         if (startDate == null || endDate == null) {
-            throw new IllegalArgumentException("Rental dates cannot be null.");
+            throw new IllegalArgumentException(
+                    "Rental dates cannot be null."
+            );
         }
 
         if (!endDate.isAfter(startDate)) {
-            throw new IllegalArgumentException("End date must be after start date.");
+            throw new IllegalArgumentException(
+                    "End date must be after start date."
+            );
         }
 
-        long rentalDays = ChronoUnit.DAYS.between(startDate, endDate);
+        long rentalDays = ChronoUnit.DAYS.between(
+                startDate,
+                endDate
+        );
 
         if (rentalDays > MAX_RENTAL_DAYS) {
-            throw new IllegalArgumentException("Rental period cannot exceed 30 days.");
+            throw new IllegalArgumentException(
+                    "Rental period cannot exceed "
+                            + MAX_RENTAL_DAYS
+                            + " days."
+            );
         }
     }
 }

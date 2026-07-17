@@ -35,8 +35,15 @@ public class FileManagerRepository implements ManagerRepository {
      * Creates a manager repository using the specified file path.
      *
      * @param filePath the path of the managers file
+     * @throws IllegalArgumentException if the file path is null
      */
     public FileManagerRepository(Path filePath) {
+        if (filePath == null) {
+            throw new IllegalArgumentException(
+                    "File path cannot be null."
+            );
+        }
+
         this.filePath = filePath;
         createFile();
     }
@@ -62,10 +69,19 @@ public class FileManagerRepository implements ManagerRepository {
             }
 
             if (Files.size(filePath) == 0) {
-                Files.write(filePath,Arrays.asList("admin,1234"),StandardCharsets.UTF_8,StandardOpenOption.TRUNCATE_EXISTING);
+                Files.write(
+                        filePath,
+                        Arrays.asList("admin,1234"),
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING
+                );
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Could not create managers file.",e);
+        } catch (IOException exception) {
+            throw new RuntimeException(
+                    "Could not create managers file.",
+                    exception
+            );
         }
     }
 
@@ -73,25 +89,55 @@ public class FileManagerRepository implements ManagerRepository {
      * Saves a new manager in the managers file.
      *
      * @param manager the manager to save
-     * @throws IllegalArgumentException if the manager is null or the username
-     *                                  already exists
+     * @throws IllegalArgumentException if the manager is null, its credentials
+     *                                  are invalid, or the username already exists
      * @throws RuntimeException if the manager cannot be written to the file
      */
     public void save(Manager manager) {
         if (manager == null) {
-            throw new IllegalArgumentException("Manager cannot be null.");
+            throw new IllegalArgumentException(
+                    "Manager cannot be null."
+            );
         }
 
-        if (findByUsername(manager.getUsername()) != null) {
-            throw new IllegalArgumentException("Username already exists.");
+        String username = manager.getUsername();
+        String password = manager.getPassword();
+
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Username cannot be empty."
+            );
         }
 
-        String line =manager.getUsername() + "," + manager.getPassword();
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Password cannot be empty."
+            );
+        }
+
+        username = username.trim();
+
+        if (findByUsername(username) != null) {
+            throw new IllegalArgumentException(
+                    "Username already exists."
+            );
+        }
+
+        String line = username + "," + password;
 
         try {
-            Files.write(filePath,Arrays.asList(line),StandardCharsets.UTF_8,StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not save manager.",e);
+            Files.write(
+                    filePath,
+                    Arrays.asList(line),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+        } catch (IOException exception) {
+            throw new RuntimeException(
+                    "Could not save manager.",
+                    exception
+            );
         }
     }
 
@@ -109,8 +155,13 @@ public class FileManagerRepository implements ManagerRepository {
             return null;
         }
 
+        String searchedUsername = username.trim();
+
         try {
-            List<String> lines =Files.readAllLines(filePath,StandardCharsets.UTF_8);
+            List<String> lines = Files.readAllLines(
+                    filePath,
+                    StandardCharsets.UTF_8
+            );
 
             for (String line : lines) {
                 if (line.trim().isEmpty()) {
@@ -120,14 +171,21 @@ public class FileManagerRepository implements ManagerRepository {
                 String[] data = line.split(",", -1);
 
                 if (data.length == 2
-                        && data[0].equals(username)) {
-                    return new Manager(data[0], data[1]);
+                        && data[0].trim().equals(searchedUsername)) {
+
+                    return new Manager(
+                            data[0].trim(),
+                            data[1]
+                    );
                 }
             }
 
             return null;
-        } catch (IOException e) {
-            throw new RuntimeException("Could not read managers file.",e);
+        } catch (IOException exception) {
+            throw new RuntimeException(
+                    "Could not read managers file.",
+                    exception
+            );
         }
     }
 }
