@@ -42,20 +42,16 @@ public class StandardStrategy implements RentalCostStrategy {
             throw new IllegalArgumentException("Return date cannot be null.");
         }
 
-        long rentalDays = ChronoUnit.DAYS.between(
-                rental.getStartDate(),
-                rental.getEndDate()
-        );
+        if (returnDate.isBefore(rental.getStartDate())) {
+            throw new IllegalArgumentException("Return date cannot be before rental start date.");
+        }
 
-        double totalCost = rentalDays
-                * rental.getVehicle().getPricePerDay();
+        LocalDate billedEndDate = returnDate.isBefore(rental.getEndDate()) ? returnDate : rental.getEndDate();
+        long rentalDays = Math.max(1, ChronoUnit.DAYS.between(rental.getStartDate(), billedEndDate));
+        double totalCost = rentalDays * rental.getVehicle().getPricePerDay();
 
         if (returnDate.isAfter(rental.getEndDate())) {
-            long lateDays = ChronoUnit.DAYS.between(
-                    rental.getEndDate(),
-                    returnDate
-            );
-
+            long lateDays = ChronoUnit.DAYS.between(rental.getEndDate(), returnDate);
             totalCost += lateDays * LATE_COST_PER_DAY;
         }
 
