@@ -34,46 +34,69 @@ class VehicleCatalogServiceTest {
         Path managersFile = tempDir.resolve("managers.txt");
         Path vehiclesFile = tempDir.resolve("vehicles.txt");
 
-        Files.write(managersFile, Arrays.asList("admin,1234"), StandardCharsets.UTF_8);
+        Files.write(
+                managersFile,
+                Arrays.asList("admin,1234"),
+                StandardCharsets.UTF_8
+        );
 
-        Files.write(vehiclesFile, Arrays.asList(
-                "V1,Toyota,Corolla,40.0,AVAILABLE",
-                "V2,Kia,Sportage,60.0,RENTED",
-                "V3,Honda,Civic,45.0,AVAILABLE",
-                "V4,Hyundai,Tucson,55.0,RENTED"
-        ), StandardCharsets.UTF_8);
+        Files.write(
+                vehiclesFile,
+                Arrays.asList(
+                        "V1,Toyota,Corolla,40.0,AVAILABLE",
+                        "V2,Kia,Sportage,60.0,RENTED",
+                        "V3,Honda,Civic,45.0,AVAILABLE",
+                        "V4,Hyundai,Tucson,55.0,RENTED"
+                ),
+                StandardCharsets.UTF_8
+        );
 
-        ManagerRepository managerRepository = new FileManagerRepository(managersFile);
-        VehicleRepository vehicleRepository = new FileVehicleRepository(vehiclesFile);
+        ManagerRepository managerRepository =
+                new FileManagerRepository(managersFile);
+
+        VehicleRepository vehicleRepository =
+                new FileVehicleRepository(vehiclesFile);
 
         authService = new AuthService(managerRepository);
-        vehicleCatalogService = new VehicleCatalogService(vehicleRepository, authService);
+
+        vehicleCatalogService = new VehicleCatalogService(
+                vehicleRepository,
+                authService
+        );
     }
 
     @Test
-    void displayAvailableVehicles() {
+    void getAvailableVehicles_loggedIn_returnsOnlyAvailableVehicles() {
         authService.login("admin", "1234");
 
-        List<Vehicle> vehicles = vehicleCatalogService.getAvailableVehicles();
+        List<Vehicle> vehicles =
+                vehicleCatalogService.getAvailableVehicles();
 
         assertEquals(2, vehicles.size());
+
+        assertEquals("V1", vehicles.get(0).getId());
         assertEquals(VehicleStatus.AVAILABLE, vehicles.get(0).getStatus());
+
+        assertEquals("V3", vehicles.get(1).getId());
         assertEquals(VehicleStatus.AVAILABLE, vehicles.get(1).getStatus());
     }
 
     @Test
-    void hideRentedVehicles() {
-        authService.login("admin", "1234");
-
-        List<Vehicle> vehicles = vehicleCatalogService.getAvailableVehicles();
-
-        for (Vehicle vehicle : vehicles) {
-            assertEquals(VehicleStatus.AVAILABLE, vehicle.getStatus());
-        }
+    void getAvailableVehicles_notLoggedIn_throwsException() {
+        assertThrows(
+                IllegalStateException.class,
+                () -> vehicleCatalogService.getAvailableVehicles()
+        );
     }
 
     @Test
-    void requireLoginToViewVehicles() {
-        assertThrows(IllegalStateException.class, () -> vehicleCatalogService.getAvailableVehicles());
+    void getAvailableVehicles_afterLogout_throwsException() {
+        authService.login("admin", "1234");
+        authService.logout();
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> vehicleCatalogService.getAvailableVehicles()
+        );
     }
 }

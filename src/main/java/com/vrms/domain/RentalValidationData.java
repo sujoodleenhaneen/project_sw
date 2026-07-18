@@ -1,6 +1,13 @@
 package com.vrms.domain;
+/**
+ * Contains the information required to validate a rental request.
+ *
+ * <p>Different vehicle types use this data to apply their
+ * specific rental conditions.</p>
+ */
 
 public class RentalValidationData {
+	
 
     private final int customerAge;
     private final boolean specialTruckLicense;

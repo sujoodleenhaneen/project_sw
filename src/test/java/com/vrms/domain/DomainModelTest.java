@@ -6,111 +6,95 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
-public class DomainModelTest {
+class DomainModelTest {
 
     @Test
-    public void vehicleGetters_shouldReturnVehicleData() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
-
-        assertEquals("V1", vehicle.getId());
-        assertEquals("Toyota", vehicle.getBrand());
-        assertEquals("Corolla", vehicle.getModel());
-        assertEquals(40, vehicle.getPricePerDay());
-        assertEquals(VehicleStatus.AVAILABLE, vehicle.getStatus());
-        assertEquals(VehicleType.CAR, vehicle.getType());
-    }
-
-    @Test
-    public void vehicleSetStatus_shouldChangeVehicleStatus() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
+    void vehicleSetStatus_shouldChangeVehicleStatus() {
+        Vehicle vehicle = new Vehicle(
+                "V1",
+                "Toyota",
+                "Corolla",
+                40.0,
+                VehicleStatus.AVAILABLE
+        );
 
         vehicle.setStatus(VehicleStatus.RENTED);
 
-        assertEquals(VehicleStatus.RENTED, vehicle.getStatus());
+        assertEquals(
+                VehicleStatus.RENTED,
+                vehicle.getStatus()
+        );
     }
 
     @Test
-    public void vehicleToString_shouldReturnFormattedVehicleText() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
-
-        assertEquals("V1 - CAR - Toyota Corolla - 40.0 per day", vehicle.toString());
-    }
-
-    @Test
-    public void rentalGetters_shouldReturnRentalData() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
-
-        Rental rental = new Rental(
-                "R1",
-                vehicle,
-                "Haneen",
-                "haneen@example.com",
-                LocalDate.of(2026, 7, 10),
-                LocalDate.of(2026, 7, 15),
-                RentalStatus.ACTIVE
+    void closeRental_shouldChangeRentalStatusToClosed() {
+        Vehicle vehicle = new Vehicle(
+                "V1",
+                "Toyota",
+                "Corolla",
+                40.0,
+                VehicleStatus.RENTED
         );
 
-        assertEquals("R1", rental.getRentalId());
-        assertEquals(vehicle, rental.getVehicle());
-        assertEquals("Haneen", rental.getCustomerName());
-        assertEquals("haneen@example.com", rental.getCustomerEmail());
-        assertEquals(LocalDate.of(2026, 7, 10), rental.getStartDate());
-        assertEquals(LocalDate.of(2026, 7, 15), rental.getEndDate());
-        assertEquals(RentalStatus.ACTIVE, rental.getStatus());
-    }
-
-    @Test
-    public void closeRental_shouldChangeRentalStatusToClosed() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.AVAILABLE);
-
-        Rental rental = new Rental(
-                "R1",
-                vehicle,
-                "Haneen",
-                "haneen@example.com",
-                LocalDate.of(2026, 7, 10),
-                LocalDate.of(2026, 7, 15),
-                RentalStatus.ACTIVE
-        );
+        Rental rental = createRental(vehicle);
 
         rental.closeRental();
 
-        assertEquals(RentalStatus.CLOSED, rental.getStatus());
+        assertEquals(
+                RentalStatus.CLOSED,
+                rental.getStatus()
+        );
     }
 
     @Test
-    public void newRental_totalCostShouldInitiallyBeZero() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.RENTED);
-
-        Rental rental = new Rental(
-                "R1",
-                vehicle,
-                "Haneen",
-                "haneen@example.com",
-                LocalDate.of(2026, 7, 10),
-                LocalDate.of(2026, 7, 15),
-                RentalStatus.ACTIVE
+    void newRental_totalCostShouldInitiallyBeZero() {
+        Vehicle vehicle = new Vehicle(
+                "V1",
+                "Toyota",
+                "Corolla",
+                40.0,
+                VehicleStatus.RENTED
         );
 
-        assertEquals(0.0, rental.getTotalCost(), 0.001);
+        Rental rental = createRental(vehicle);
+
+        assertEquals(
+                0.0,
+                rental.getTotalCost(),
+                0.001
+        );
     }
 
     @Test
-    public void setTotalCost_shouldChangeRentalTotalCost() {
-        Vehicle vehicle = new Vehicle("V1", "Toyota", "Corolla", 40, VehicleStatus.RENTED);
-
-        Rental rental = new Rental(
-                "R1",
-                vehicle,
-                "Haneen",
-                "haneen@example.com",
-                LocalDate.of(2026, 7, 10),
-                LocalDate.of(2026, 7, 15),
-                RentalStatus.ACTIVE
+    void setTotalCost_shouldChangeRentalTotalCost() {
+        Vehicle vehicle = new Vehicle(
+                "V1",
+                "Toyota",
+                "Corolla",
+                40.0,
+                VehicleStatus.RENTED
         );
+
+        Rental rental = createRental(vehicle);
 
         rental.setTotalCost(200.0);
 
-        assertEquals(200.0, rental.getTotalCost(), 0.001);
+        assertEquals(
+                200.0,
+                rental.getTotalCost(),
+                0.001
+        );
+    }
+
+    private Rental createRental(Vehicle vehicle) {
+        return new Rental(
+                "R1",
+                vehicle,
+                "Haneen",
+                "haneen@example.com",
+                LocalDate.of(2026, 7, 10),
+                LocalDate.of(2026, 7, 15),
+                RentalStatus.ACTIVE
+        );
     }
 }

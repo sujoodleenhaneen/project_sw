@@ -18,7 +18,7 @@ public class StandardStrategy implements RentalCostStrategy {
     /**
      * Fixed late return cost applied per late day.
      */
-    private static final double LATE_COST = 20.0;
+    private static final double LATE_COST_PER_DAY = 20.0;
 
     /**
      * Calculates the total rental cost for a rental.
@@ -30,7 +30,7 @@ public class StandardStrategy implements RentalCostStrategy {
      * @param rental the rental record that contains vehicle and rental date information
      * @param returnDate the actual date when the vehicle is returned
      * @return the total calculated rental cost
-     * @throws NullPointerException if rental, vehicle, rental dates, or return date are null
+     * @throws IllegalArgumentException if rental or return date is null
      */
     @Override
     public double calculateCost(Rental rental, LocalDate returnDate) {
@@ -56,7 +56,7 @@ public class StandardStrategy implements RentalCostStrategy {
                     returnDate
             );
 
-            totalCost += lateDays * LATE_COST;
+            totalCost += lateDays * LATE_COST_PER_DAY;
         }
 
         return totalCost;

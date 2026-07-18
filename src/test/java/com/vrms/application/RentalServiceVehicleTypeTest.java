@@ -36,7 +36,7 @@ public class RentalServiceVehicleTypeTest {
 
     @Test
     public void rentMotorcycle_whenCustomerIsUnderAge_shouldThrowException() {
-        RentalValidationData data = new RentalValidationData(18, false, false);
+        RentalValidationData data = new RentalValidationData(20, false, false);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,

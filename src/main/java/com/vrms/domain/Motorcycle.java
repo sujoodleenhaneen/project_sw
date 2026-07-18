@@ -1,9 +1,22 @@
 package com.vrms.domain;
 
+/**
+ * Represents a motorcycle available for rental.
+ *
+ * <p>Motorcycles use a specific validation strategy that checks
+ * the customer's minimum rental age.</p>
+ */
 public class Motorcycle extends Vehicle {
 
-    private static final int MINIMUM_RENTAL_AGE = 21;
-
+    /**
+     * Creates a motorcycle with the provided information.
+     *
+     * @param id unique vehicle identifier
+     * @param brand motorcycle brand
+     * @param model motorcycle model
+     * @param pricePerDay daily rental price
+     * @param status current availability status
+     */
     public Motorcycle(
             String id,
             String brand,
@@ -11,26 +24,23 @@ public class Motorcycle extends Vehicle {
             double pricePerDay,
             VehicleStatus status) {
 
-        super(id, brand, model, pricePerDay, status);
+        super(
+                id,
+                brand,
+                model,
+                pricePerDay,
+                status,
+                new MotorcycleRentalValidationStrategy()
+        );
     }
 
+    /**
+     * Returns the type of this vehicle.
+     *
+     * @return {@link VehicleType#MOTORCYCLE}
+     */
     @Override
     public VehicleType getType() {
         return VehicleType.MOTORCYCLE;
-    }
-
-    @Override
-    public void validateRental(
-            RentalValidationData validationData) {
-
-        super.validateRental(validationData);
-
-        if (validationData.getCustomerAge()
-                < MINIMUM_RENTAL_AGE) {
-
-            throw new IllegalArgumentException(
-                    "Customer must be at least 21 years old to rent a motorcycle."
-            );
-        }
     }
 }
