@@ -13,6 +13,9 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.2</junit.version>
+        <sonar.organization>sujoodleenhaneen</sonar.organization>
+  <sonar.projectKey>sujoodleenhaneen_project_sw</sonar.projectKey>
+  <sonar.host.url>https://sonarcloud.io/</sonar.host.url>
     </properties>
 
     <dependencies>
