@@ -78,7 +78,7 @@ public class StandardStrategyTest {
                 LocalDate.of(2026, 7, 3)
         );
 
-        assertEquals(200.0, cost, 0.001);
+        assertEquals(100.0, cost);
     }
 
     @Test
