@@ -25,7 +25,10 @@ import com.vrms.persistence.ManagerRepository;
 import com.vrms.persistence.RentalRepository;
 import com.vrms.persistence.VehicleRepository;
 
+import java.util.logging.Logger;
+
 public class Main {
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 	private static final String RENTAL_ID_LABEL = "Rental ID: ";
 
     private static final int MAX_RENTAL_DAYS = 30;
@@ -183,7 +186,7 @@ public class Main {
             System.out.println();
             System.out.println("Rental created successfully.");
             System.out.println(RENTAL_ID_LABEL + rental.getRentalId());
-            System.out.println("Customer: " + rental.getCustomerName());
+            LOGGER.info(() -> "Customer: " + rental.getCustomerName());
             System.out.println("Customer email: " + rental.getCustomerEmail());
             System.out.println("Vehicle: " + rental.getVehicle());
             System.out.println("Vehicle type: " + rental.getVehicle().getType());
