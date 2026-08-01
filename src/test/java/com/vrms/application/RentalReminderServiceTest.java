@@ -341,11 +341,13 @@ public class RentalReminderServiceTest {
 
     @Test
     public void checkReminder_nullRental_throwsException() {
+        LocalDate currentDate = LocalDate.of(2026, 7, 14);
+
         assertThrows(
                 IllegalArgumentException.class,
                 () -> reminderService.checkAndSendReminder(
                         null,
-                        LocalDate.of(2026, 7, 14)
+                        currentDate
                 )
         );
     }
