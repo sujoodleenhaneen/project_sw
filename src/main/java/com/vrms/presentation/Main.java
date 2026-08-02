@@ -51,13 +51,12 @@ public class Main {
 
         Scanner input = new Scanner(System.in);
         boolean run = true;
-        System.out.println("Test SonarQube Smell");
 
         while (run) {
             println();
 
             if (!loginController.isLoggedIn()) {
-            	 System.out.println("1. Login");
+                println("1. Login");
                 println("2. Exit");
                 print("Choose: ");
 
