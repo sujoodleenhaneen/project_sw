@@ -17,7 +17,6 @@
   <sonar.projectKey>sujoodleenhaneen_project_sw</sonar.projectKey>
   <sonar.host.url>https://sonarcloud.io/</sonar.host.url>
    <sonar.coverage.exclusions>**/Main.java</sonar.coverage.exclusions>
-   <sonar.exclusions>**/Main.java</sonar.exclusions>
     </properties>
 
     <dependencies>
