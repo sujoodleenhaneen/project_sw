@@ -6,6 +6,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Scanner;
+import java.util.logging.Logger;
 
 import com.vrms.application.AuthService;
 import com.vrms.application.EmailNotificationService;
@@ -25,12 +26,10 @@ import com.vrms.persistence.ManagerRepository;
 import com.vrms.persistence.RentalRepository;
 import com.vrms.persistence.VehicleRepository;
 
-import java.util.logging.Logger;
-
 public class Main {
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
-	private static final String RENTAL_ID_LABEL = "Rental ID: ";
 
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final String RENTAL_ID_LABEL = "Rental ID: ";
     private static final int MAX_RENTAL_DAYS = 30;
 
     public static void main(String[] args) {
@@ -54,12 +53,12 @@ public class Main {
         boolean run = true;
 
         while (run) {
-            System.out.println();
+            println();
 
             if (!loginController.isLoggedIn()) {
-                System.out.println("1. Login");
-                System.out.println("2. Exit");
-                System.out.print("Choose: ");
+                println("1. Login");
+                println("2. Exit");
+                print("Choose: ");
 
                 String choice = input.nextLine().trim();
 
@@ -69,19 +68,19 @@ public class Main {
                         break;
                     case "2":
                         run = false;
-                        System.out.println("Program closed");
+                        println("Program closed");
                         break;
                     default:
-                        System.out.println("Invalid choice. Please enter 1 or 2.");
+                        println("Invalid choice. Please enter 1 or 2.");
                 }
             } else {
-                System.out.println("1. View available vehicles");
-                System.out.println("2. Rent a vehicle");
-                System.out.println("3. Check rental expiry reminders");
-                System.out.println("4. Return vehicle");
-                System.out.println("5. Logout");
-                System.out.println("6. Exit");
-                System.out.print("Choose: ");
+                println("1. View available vehicles");
+                println("2. Rent a vehicle");
+                println("3. Check rental expiry reminders");
+                println("4. Return vehicle");
+                println("5. Logout");
+                println("6. Exit");
+                print("Choose: ");
 
                 String choice = input.nextLine().trim();
 
@@ -99,14 +98,14 @@ public class Main {
                         handleVehicleReturn(input, rentalController);
                         break;
                     case "5":
-                        System.out.println(loginController.logout());
+                        println(loginController.logout());
                         break;
                     case "6":
                         run = false;
-                        System.out.println("Program closed");
+                        println("Program closed");
                         break;
                     default:
-                        System.out.println("Invalid choice. Please enter a number from 1 to 6.");
+                        println("Invalid choice. Please enter a number from 1 to 6.");
                 }
             }
         }
@@ -124,25 +123,25 @@ public class Main {
                 break;
             }
 
-            System.out.println("Username not found. Please try again.");
+            println("Username not found. Please try again.");
         }
 
         String password = readRequiredText(input, "Password: ", "Password cannot be empty.");
-        System.out.println(loginController.login(username, password));
+        println(loginController.login(username, password));
     }
 
     private static void displayAvailableVehicles(VehicleCatalogController vehicleController) {
         List<Vehicle> vehicles = vehicleController.viewAvailableVehicles();
 
         if (vehicles.isEmpty()) {
-            System.out.println("No available vehicles");
+            println("No available vehicles");
             return;
         }
 
-        System.out.println("Available vehicles:");
+        println("Available vehicles:");
 
         for (Vehicle vehicle : vehicles) {
-            System.out.println(vehicle);
+            println(vehicle);
         }
     }
 
@@ -152,14 +151,14 @@ public class Main {
         List<Vehicle> availableVehicles = vehicleController.viewAvailableVehicles();
 
         if (availableVehicles.isEmpty()) {
-            System.out.println("No available vehicles can be rented.");
+            println("No available vehicles can be rented.");
             return;
         }
 
-        System.out.println("Available vehicles:");
+        println("Available vehicles:");
 
         for (Vehicle vehicle : availableVehicles) {
-            System.out.println(vehicle);
+            println(vehicle);
         }
 
         String rentalId = readRequiredText(input, RENTAL_ID_LABEL, "Rental ID cannot be empty.");
@@ -183,15 +182,15 @@ public class Main {
                     validationData
             );
 
-            System.out.println();
-            System.out.println("Rental created successfully.");
-            System.out.println(RENTAL_ID_LABEL + rental.getRentalId());
-            LOGGER.info(() -> "Customer: " + rental.getCustomerName());
-            System.out.println("Customer email: " + rental.getCustomerEmail());
-            System.out.println("Vehicle: " + rental.getVehicle());
-            System.out.println("Vehicle type: " + rental.getVehicle().getType());
-            System.out.println("Start date: " + rental.getStartDate());
-            System.out.println("End date: " + rental.getEndDate());
+            println();
+            println("Rental created successfully.");
+            println(RENTAL_ID_LABEL + rental.getRentalId());
+            println("Customer: " + rental.getCustomerName());
+            println("Customer email: " + rental.getCustomerEmail());
+            println("Vehicle: " + rental.getVehicle());
+            println("Vehicle type: " + rental.getVehicle().getType());
+            println("Start date: " + rental.getStartDate());
+            println("End date: " + rental.getEndDate());
 
             try {
                 notificationService.sendNotification(
@@ -205,10 +204,10 @@ public class Main {
                                 + " has been accepted."
                 );
             } catch (IllegalStateException exception) {
-                System.out.println("Rental created, but email was not sent: " + exception.getMessage());
+                println("Rental created, but email was not sent: " + exception.getMessage());
             }
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            System.out.println("Rental failed: " + exception.getMessage());
+            println("Rental failed: " + exception.getMessage());
         }
     }
 
@@ -258,37 +257,37 @@ public class Main {
         try {
             Rental rental = rentalController.returnVehicle(vehicleId);
 
-            System.out.println();
-            System.out.println("Vehicle returned successfully.");
-            System.out.println(RENTAL_ID_LABEL+ rental.getRentalId());
-            System.out.println("Customer: " + rental.getCustomerName());
-            System.out.println("Vehicle: " + rental.getVehicle());
-            System.out.println("Rental status: " + rental.getStatus());
-            System.out.printf("Total rental cost: %.2f%n", rental.getTotalCost());
+            println();
+            println("Vehicle returned successfully.");
+            println(RENTAL_ID_LABEL + rental.getRentalId());
+            println("Customer: " + rental.getCustomerName());
+            println("Vehicle: " + rental.getVehicle());
+            println("Rental status: " + rental.getStatus());
+            printf("Total rental cost: %.2f%n", rental.getTotalCost());
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            System.out.println("Vehicle return failed: " + exception.getMessage());
+            println("Vehicle return failed: " + exception.getMessage());
         }
     }
 
     private static void handleReminderCheck(RentalReminderService reminderService) {
         try {
             int remindersGenerated = reminderService.checkAllRentalsAndSendReminders(LocalDate.now());
-            System.out.println("Reminders generated: " + remindersGenerated);
+            println("Reminders generated: " + remindersGenerated);
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            System.out.println("Reminder check failed: " + exception.getMessage());
+            println("Reminder check failed: " + exception.getMessage());
         }
     }
 
     private static String readRequiredText(Scanner input, String prompt, String errorMessage) {
         while (true) {
-            System.out.print(prompt);
+            print(prompt);
             String value = input.nextLine().trim();
 
             if (!value.isEmpty()) {
                 return value;
             }
 
-            System.out.println(errorMessage);
+            println(errorMessage);
         }
     }
 
@@ -302,7 +301,7 @@ public class Main {
                 }
             }
 
-            System.out.println("Invalid or unavailable vehicle ID. Please choose an ID from the displayed list.");
+            println("Invalid or unavailable vehicle ID. Please choose an ID from the displayed list.");
         }
     }
 
@@ -314,19 +313,19 @@ public class Main {
                 return email;
             }
 
-            System.out.println("Invalid email. Example: haneen@example.com");
+            println("Invalid email. Example: haneen@example.com");
         }
     }
 
     private static LocalDate readDate(Scanner input, String prompt) {
         while (true) {
-            System.out.print(prompt);
+            print(prompt);
             String dateText = input.nextLine().trim();
 
             try {
                 return LocalDate.parse(dateText);
             } catch (DateTimeParseException exception) {
-                System.out.println("Invalid date. Use YYYY-MM-DD, for example: 2026-07-13.");
+                println("Invalid date. Use YYYY-MM-DD, for example: 2026-07-13.");
             }
         }
     }
@@ -336,14 +335,14 @@ public class Main {
             LocalDate endDate = readDate(input, "End date (YYYY-MM-DD): ");
 
             if (!endDate.isAfter(startDate)) {
-                System.out.println("End date must be after the start date.");
+                println("End date must be after the start date.");
                 continue;
             }
 
             long rentalDays = ChronoUnit.DAYS.between(startDate, endDate);
 
             if (rentalDays > MAX_RENTAL_DAYS) {
-                System.out.println("Rental period cannot exceed " + MAX_RENTAL_DAYS + " days.");
+                println("Rental period cannot exceed " + MAX_RENTAL_DAYS + " days.");
                 continue;
             }
 
@@ -353,7 +352,7 @@ public class Main {
 
     private static int readNonNegativeInteger(Scanner input, String prompt) {
         while (true) {
-            System.out.print(prompt);
+            print(prompt);
             String value = input.nextLine().trim();
 
             try {
@@ -365,13 +364,13 @@ public class Main {
             } catch (NumberFormatException exception) {
             }
 
-            System.out.println("Please enter a valid non-negative number.");
+            println("Please enter a valid non-negative number.");
         }
     }
 
     private static boolean readYesOrNo(Scanner input, String prompt) {
         while (true) {
-            System.out.print(prompt);
+            print(prompt);
             String answer = input.nextLine().trim();
 
             if (answer.equalsIgnoreCase("yes") || answer.equalsIgnoreCase("y")) {
@@ -382,7 +381,27 @@ public class Main {
                 return false;
             }
 
-            System.out.println("Please enter yes or no.");
+            println("Please enter yes or no.");
         }
+    }
+
+    private static void print(String message) {
+        LOGGER.info(message);
+    }
+
+    private static void println() {
+        LOGGER.info("");
+    }
+
+    private static void println(String message) {
+        LOGGER.info(message);
+    }
+
+    private static void println(Object object) {
+        LOGGER.info(String.valueOf(object));
+    }
+
+    private static void printf(String format, Object... args) {
+        LOGGER.info(() -> String.format(format, args));
     }
 }
