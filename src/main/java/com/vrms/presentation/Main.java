@@ -51,6 +51,7 @@ public class Main {
 
         Scanner input = new Scanner(System.in);
         boolean run = true;
+        System.out.println("Test SonarQube Smell");
 
         while (run) {
             println();
