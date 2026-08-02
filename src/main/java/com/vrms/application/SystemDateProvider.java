@@ -1,5 +1,5 @@
 package com.vrms.application;
-
+import java.time.ZoneId;
 import java.time.LocalDate;
 
 /**
@@ -14,6 +14,6 @@ public class SystemDateProvider implements DateProvider {
      */
     @Override
     public LocalDate getCurrentDate() {
-        return LocalDate.now();
+        return LocalDate.now(ZoneId.systemDefault());
     }
 }
