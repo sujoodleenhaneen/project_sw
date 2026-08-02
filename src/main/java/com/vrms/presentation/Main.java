@@ -56,7 +56,7 @@ public class Main {
             println();
 
             if (!loginController.isLoggedIn()) {
-                println("1. Login");
+            	 System.out.println("1. Login");
                 println("2. Exit");
                 print("Choose: ");
 
